@@ -52,6 +52,8 @@ class TVFile:
       c2s = c2s + "\n  Show Name          = {0}".format(self.showName)
     if self.seasonNum is not None and self.episodeNum is not None:
       c2s = c2s + "\n    Season {0} Episode {1}".format(self.seasonNum, self.episodeNum)
+    if self.episodeName is not None:
+      c2s = c2s + " ({0})".format(self.episodeName)
     if self.newFilePath is not None:
       c2s = c2s + "\n  New File Path      = {0}".format(self.newFilePath)
     return(c2s)

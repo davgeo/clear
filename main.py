@@ -24,11 +24,11 @@ import glob
 
 # Local file imports
 import tvfile
-import epguides
+import renamer
 
 # Global settings
-TV_TEST_DIR = '/Users/Slinc/Work/dm/test_dir/TV'
-DL_TEST_DIR = '/Users/Slinc/Work/dm/test_dir/downloads'
+TV_TEST_DIR = 'test_dir/TV'
+DL_TEST_DIR = 'test_dir/downloads'
 IGNORE_DIRS = ('DONE', 'PROCESSED')
 SUPPORTED_FILE_FORMATS = ('.avi','.mp4')
 
@@ -50,16 +50,6 @@ def GetSupportedFilesInDir(fileDir, fileList):
   else:
     print("Invalid non-directory path given to parse")
 
-def GetEpisodeName(showName, season, episode):
-  EPGuidesLookUp(showName, season, episode)
-
-def UpdateFilesNames(fileList):
-
-  for videoFile in videoFileList:
-    print(videoFile)
-    newFileName = GenerateNewFileName(os.path.basename(videoFile))
-
-
 def ProcessDownloadFolder():
   # Get list of all video files in download directory
   # For each item
@@ -69,10 +59,8 @@ def ProcessDownloadFolder():
   ## Move to PROCESSED folder in DL directory
   tvFileList = []
   GetSupportedFilesInDir(DL_TEST_DIR, tvFileList)
-  guide = epguides.EPGuidesLookup()
-  for tvFile in tvFileList:
-    tvFile.UpdateEpisodeName(guide.EpisodeLookUp(tvFile.showName, tvFile.seasonNum, tvFile.episodeNum))
-    print(tvFile.Convert2String())
+  tvRenamer = renamer.TVRenamer(tvFileList, 'EPGUIDES', TV_TEST_DIR)
+  tvRenamer.GenerateNewFileInfo()
 
 def main():
   ProcessDownloadFolder()
