@@ -38,7 +38,7 @@ class TVFile:
        self.episodeNum is not None and self.episodeName is not None:
       if fileDir is None:
         fileDir = self.fileDir
-      newFileName = "{0}.S{1}E{2}.{3}.{4}".format(self.showName, self.seasonNum, \
+      newFileName = "{0}.S{1}E{2}.{3}{4}".format(self.showName, self.seasonNum, \
                                             self.episodeNum, self.episodeName, self.ext)
       self.newFilePath = os.path.join(fileDir, newFileName)
 

@@ -60,7 +60,7 @@ def ProcessDownloadFolder():
   tvFileList = []
   GetSupportedFilesInDir(DL_TEST_DIR, tvFileList)
   tvRenamer = renamer.TVRenamer(tvFileList, 'EPGUIDES', TV_TEST_DIR)
-  tvRenamer.GenerateNewFileInfo()
+  tvRenamer.ProcessFiles()
 
 def main():
   ProcessDownloadFolder()
