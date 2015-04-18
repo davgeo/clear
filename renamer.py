@@ -7,14 +7,20 @@ import shutil
 # Local file imports
 import epguides
 import tvfile
+import database
 
+#################################################
+# TVRenamer
+#################################################
 class TVRenamer:
   #################################################
   # constructor
   #################################################
-  def __init__(self, tvFileList, guideName = 'EPGUIDES', destDir = None):
-    self._fileList = tvFileList
+  def __init__(self, tvFileList, guideName = 'EPGUIDES', destDir = None, dbPath = None):
+    self._fileList  = tvFileList
     self._targetDir = destDir
+    if dbPath is not None:
+      self._db        = database.RenamerDB(dbPath)
     self._SetGuide(guideName)
 
   # *** INTERNAL CLASSES *** #
@@ -46,6 +52,7 @@ class TVRenamer:
   def _GetGuideShowName(self, string):
     # Look up string in guide to find best tv show match
     print("Looking up show name for: {0}".format(string))
+    showName = self._db.GetShowName(string)
     showNameList = self._guide.ShowNameLookUp(string)
 
     showNameListStr = ', '.join(showNameList)
@@ -75,15 +82,17 @@ class TVRenamer:
     return self._GetGuideShowName(response)
 
   ############################################################################
-  # _RenameFiles
-  # Renames files
+  # _RenameFile
+  # Renames file
   ############################################################################
-  def _RenameFiles(self):
-    print("Renaming files...")
-    for tvFile in self._fileList:
-      if tvFile.newFilePath is not None:
-        print("Moving {0} to {1}".format(tvFile.origFilePath, tvFile.newFilePath))
-        #shutil.move(tvFile.origFilePath, tvFile.newFilePath)
+  def _RenameFile(self, tvFile):
+    processedDir = 'PROCESSED'
+    if tvFile.newFilePath is not None:
+      print("Copying {0} to {1}".format(tvFile.origFilePath, tvFile.newFilePath))
+      # shutil copy
+
+      print("Moving original file {0} to processed dir {1}\n".format(tvFile.origFilePath, processedDir))
+      #shutil.move(tvFile.origFilePath, tvFile.newFilePath)
 
   # *** EXTERNAL CLASSES *** #
   ############################################################################
@@ -101,7 +110,11 @@ class TVRenamer:
     #print(uniqueFileShowList)
     print("\n*** -------------------------------- ***")
     for fileShowName in uniqueFileShowList:
-      showNameMatchDict[fileShowName] = self._GetGuideShowName(fileShowName)
+      showNameMatchDict[fileShowName] = self._db.GetShowName(fileShowName)
+      if showNameMatchDict[fileShowName] is None:
+        showNameMatchDict[fileShowName] = self._GetGuideShowName(fileShowName)
+        if showNameMatchDict[fileShowName] is not None:
+          self._db.AddShowName(fileShowName, showNameMatchDict[fileShowName])
 
     skippedFileList = []
     activeFileList = []
@@ -110,27 +123,34 @@ class TVRenamer:
       tvFile.guideShowName = showNameMatchDict[tvFile.fileShowName]
       if tvFile.guideShowName is not None:
         tvFile.episodeName = self._guide.EpisodeNameLookUp(tvFile.guideShowName, tvFile.seasonNum, tvFile.episodeNum)
-        if tvFile.episodeName == None:
+        if tvFile.episodeName is None:
           skippedFileList.append(tvFile)
         else:
-          activeFileList.append(tvFile)
+          tvFile.GenerateNewFilePath(self._targetDir)
+          if tvFile.newFilePath is None:
+            skippedFileList.append(tvFile)
+          else:
+            activeFileList.append(tvFile)
       else:
         skippedFileList.append(tvFile)
 
     print("\n*** -------------------------------- ***")
-    print("Active files:\n")
+    print("Renaming files:\n")
     for tvFile in activeFileList:
+      tvFile.GenerateNewFilePath(self._targetDir)
       print(tvFile.Convert2String(), "\n")
+      self._RenameFile(tvFile)
 
     print("\n*** -------------------------------- ***")
     print("Skipped files:")
     for tvFile in skippedFileList:
-      if tvFile.guideShowName == None:
+      if tvFile.guideShowName is None:
         print("  {0} (Missing show name)".format(tvFile.origFilePath))
-      elif tvFile.episodeName == None:
+      elif tvFile.episodeName is None:
         print("  {0} (Missing episode name)".format(tvFile.origFilePath))
+      elif tvFile.newFilePath is None:
+        print("  {0} (Failed to create new file path)".format(tvFile.origFilePath))
       else:
         print("  {0} (Unknown reason)".format(tvFile.origFilePath))
-    #self.RenameFiles(tvFileList)
 
 
