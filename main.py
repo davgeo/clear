@@ -32,6 +32,10 @@ DL_TEST_DIR = 'test_dir/downloads'
 IGNORE_DIRS = ('DONE', 'PROCESSED')
 SUPPORTED_FILE_FORMATS = ('.avi','.mp4')
 
+############################################################################
+# GetSupportedFilesInDir
+# Get all supported files from given directory folder
+############################################################################
 def GetSupportedFilesInDir(fileDir, fileList):
   print("Parsing file directory:", fileDir)
   if os.path.isdir(fileDir) is True:
@@ -50,21 +54,27 @@ def GetSupportedFilesInDir(fileDir, fileList):
   else:
     print("Invalid non-directory path given to parse")
 
+############################################################################
+# ProcessDownloadFolder
+# Get all tv files in download directory
+# Copy-rename files using TVRenamer
+# Move old files in DL directory to PROCESSED folder
+############################################################################
 def ProcessDownloadFolder():
-  # Get list of all video files in download directory
-  # For each item
-  ## Get showname, season and episode from filename
-  ## Look up episode name
-  ## Copy to TV directory with new name
-  ## Move to PROCESSED folder in DL directory
   tvFileList = []
   GetSupportedFilesInDir(DL_TEST_DIR, tvFileList)
   tvRenamer = renamer.TVRenamer(tvFileList, 'EPGUIDES', TV_TEST_DIR)
-  tvRenamer.ProcessFiles()
+  tvRenamer.Run()
 
+############################################################################
+# main
+############################################################################
 def main():
   ProcessDownloadFolder()
 
+############################################################################
+# default process if run as standalone
+############################################################################
 if __name__ == "__main__":
   if sys.version_info < (3,4):
     sys.stdout.write("Incompatible Python version detected - Python 3.4 or greater is required.\n")
