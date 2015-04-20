@@ -19,64 +19,22 @@ TV LIBRARY
 '''
 # Python default package imports
 import sys
-import os
-import glob
 
 # Local file imports
-import tvfile
-import renamer
-
-# Global settings
-TV_TEST_DIR = 'test_dir/TV'
-DL_TEST_DIR = 'test_dir/downloads'
-IGNORE_DIRS = ('DONE', 'PROCESSED')
-SUPPORTED_FILE_FORMATS = ('.avi','.mp4')
-
-############################################################################
-# GetSupportedFilesInDir
-# Get all supported files from given directory folder
-############################################################################
-def GetSupportedFilesInDir(fileDir, fileList):
-  print("Parsing file directory:", fileDir)
-  if os.path.isdir(fileDir) is True:
-    for globPath in glob.glob(os.path.join(fileDir, '*')):
-      if os.path.splitext(globPath)[1] in SUPPORTED_FILE_FORMATS:
-        newFile = tvfile.TVFile(globPath)
-        if newFile.GetShowDetails():
-          fileList.append(newFile)
-      elif os.path.isdir(globPath):
-        if(os.path.basename(globPath) in IGNORE_DIRS):
-          print("Skipping ignored directory", globPath)
-        else:
-          GetSupportedFilesInDir(globPath, fileList)
-      else:
-        print("Ignoring unsupported file or folder:", item)
-  else:
-    print("Invalid non-directory path given to parse")
-
-############################################################################
-# ProcessDownloadFolder
-# Get all tv files in download directory
-# Copy-rename files using TVRenamer
-# Move old files in DL directory to PROCESSED folder
-############################################################################
-def ProcessDownloadFolder():
-  tvFileList = []
-  GetSupportedFilesInDir(DL_TEST_DIR, tvFileList)
-  tvRenamer = renamer.TVRenamer(tvFileList, 'EPGUIDES', TV_TEST_DIR, 'epguides_renamer.db')
-  tvRenamer.Run()
+import dm
 
 ############################################################################
 # main
 ############################################################################
 def main():
-  ProcessDownloadFolder()
+  prog = dm.DownloadManager('dm.db')
+  prog.ProcessDownloadFolder()
 
 ############################################################################
 # default process if run as standalone
 ############################################################################
 if __name__ == "__main__":
   if sys.version_info < (3,4):
-    sys.stdout.write("Incompatible Python version detected - Python 3.4 or greater is required.\n")
+    sys.stdout.write("[MAIN] Incompatible Python version detected - Python 3.4 or greater is required.\n")
   else:
     main()

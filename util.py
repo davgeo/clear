@@ -3,7 +3,15 @@
 # Python default package imports
 import difflib
 import requests
+import glob
+import os
 
+# Local file imports
+import tvfile
+
+############################################################################
+# GetBestStringMatchValue
+############################################################################
 def GetBestStringMatchValue(string1, string2):
   # Ignore case
   string1 = string1.lower()
@@ -42,12 +50,37 @@ def GetBestStringMatchValue(string1, string2):
 
   return(bestRatio)
 
+############################################################################
+# WebLookup
+############################################################################
 def WebLookup(url, urlQuery=None):
   # Look up webpage at given url with optional query string
-  print("Looking up info from URL:{0} with QUERY:{1})".format(url, urlQuery))
+  print("[UTIL] Looking up info from URL:{0} with QUERY:{1})".format(url, urlQuery))
   response = requests.get(url, params=urlQuery)
   if(response.status_code == requests.codes.ok):
     return(response.text)
   else:
     response.raise_for_status()
+
+############################################################################
+# GetSupportedFilesInDir
+# Get all supported files from given directory folder
+############################################################################
+def GetSupportedFilesInDir(fileDir, fileList, supportedFormatList, ignoreDirList):
+  print("[UTIL] Parsing file directory:", fileDir)
+  if os.path.isdir(fileDir) is True:
+    for globPath in glob.glob(os.path.join(fileDir, '*')):
+      if os.path.splitext(globPath)[1] in supportedFormatList:
+        newFile = tvfile.TVFile(globPath)
+        if newFile.GetShowDetails():
+          fileList.append(newFile)
+      elif os.path.isdir(globPath):
+        if(os.path.basename(globPath) in ignoreDirList):
+          print("[UTIL] Skipping ignored directory", globPath)
+        else:
+          GetSupportedFilesInDir(globPath, fileList, supportedFormatList, ignoreDirList)
+      else:
+        print("[UTIL] Ignoring unsupported file or folder:", item)
+  else:
+    print("[UTIL] Invalid non-directory path given to parse")
 

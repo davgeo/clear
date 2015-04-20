@@ -48,69 +48,69 @@ class RenamerDB:
     if response in validList:
       return response
     else:
-      prompt = "  Unknown response given - please reenter one of [{0}]: ".format('/'.join(validList))
+      prompt = "  [DB] Unknown response given - please reenter one of [{0}]: ".format('/'.join(validList))
       response = input(prompt)
       self._CheckAcceptableUserResponse(response, validList)
 
   #################################################
   # AddShowNameEntry
   #################################################
-  def AddShowNameEntry(self, fileShowName, guideShowName, guideID):
+  def AddShowNameEntry(self, guideName, fileShowName, guideShowName, guideID):
     dbCursor = self._GetCursor()
     try:
-      dbCursor.execute("CREATE TABLE showname (fileName text, guideName text, guideID int)")
+      dbCursor.execute("CREATE TABLE showname (guideName text, fileShowName text, guideShowName text, guideID int)")
     except sqlite3.OperationalError:
       # Lookup existing table entry if table already exists
-      existingTableEntry = self.CheckShowNameTable(fileShowName)
+      existingTableEntry = self.CheckShowNameTable(guideName, fileShowName)
     else:
       existingTableEntry = None
 
     if existingTableEntry is None:
-      dbCursor.execute("INSERT INTO showname VALUES (?,?,?)", (fileShowName, guideShowName, guideID))
+      dbCursor.execute("INSERT INTO showname VALUES (?,?,?,?)", (guideName, fileShowName, guideShowName, guideID))
     elif existingTableEntry[0] != guideShowName:
-      print("*WARNING* Database guide show name mismatch for file show name {0}".format(fileShowName))
-      print("            New guide show name      = {0} (ID: {1})".format(guideShowName, guideID))
-      print("            Database guide show name = {0} (ID: {1})".format(existingTableEntry[0], existingTableEntry[1]))
-      prompt = "  Do you want to update the database with the new show name value? [y/n]: "
+      print("[DB] *WARNING* Database guide show name mismatch for file show name {0}".format(fileShowName))
+      print("            [DB] New guide show name      = {0} (ID: {1})".format(guideShowName, guideID))
+      print("            [DB] Database guide show name = {0} (ID: {1})".format(existingTableEntry[0], existingTableEntry[1]))
+      prompt = "  [DB] Do you want to update the database with the new show name value? [y/n]: "
       response = input(prompt).lower()
       self._CheckAcceptableUserResponse(response, ('y', 'n'))
       if response == 'y':
-        dbCursor.execute("UPDATE showname SET guideName=?, guideID=? WHERE fileName=?", (guideShowName, guideID, fileShowName))
+        dbCursor.execute("UPDATE showname SET guideShowName=?, guideID=? WHERE guideName=? AND fileShowName=?", (guideShowName, guideID, guideName, fileShowName))
     elif existingTableEntry[1] != guideID:
-      print("*WARNING* Database show ID mismatch for file show name {0}".format(fileShowName))
-      print("            New ID      = {0} (Showname: {1})".format(guideID, guideShowName))
-      print("            Database ID = {0} (Showname: {1})".format(existingTableEntry[1], existingTableEntry[0]))
-      prompt = "  Do you want to update the database with the new ID value? [y/n]: "
+      print("[DB] *WARNING* Database show ID mismatch for file show name {0}".format(fileShowName))
+      print("            [DB] New ID      = {0} (Showname: {1})".format(guideID, guideShowName))
+      print("            [DB] Database ID = {0} (Showname: {1})".format(existingTableEntry[1], existingTableEntry[0]))
+      prompt = "  [DB] Do you want to update the database with the new ID value? [y/n]: "
       response = input(prompt).lower()
       self._CheckAcceptableUserResponse(response, ('y', 'n'))
       if response == 'y':
-        dbCursor.execute("UPDATE showname SET guideName=?, guideID=? WHERE fileName=?", (guideShowName, guideID, fileShowName))
+        dbCursor.execute("UPDATE showname SET guideShowName=?, guideID=? WHERE guideName=? AND fileShowName=?", (guideShowName, guideID, guideName, fileShowName))
     self._CommitChanges()
 
   #################################################
   # CheckShowNameTable
   #################################################
-  def CheckShowNameTable(self, fileShowName):
+  def CheckShowNameTable(self, guideName, fileShowName):
     dbCursor = self._GetCursor()
     try:
-      dbCursor.execute("SELECT * FROM showname")
+      dbCursor.execute("SELECT * FROM showname WHERE guideName=?", (guideName, ))
     except sqlite3.OperationalError:
       return None
     else:
       table = dbCursor.fetchall()
       for row in table:
         #print(row)
-        if row[0].lower() == fileShowName.lower():
-          return (row[1], row[2])
+        if row[1].lower() == fileShowName.lower():
+          return (row[2], row[3])
       return None
 
   #################################################
   # GetShowName
   #################################################
-  def GetShowName(self, fileShowName):
+  def GetShowName(self, guideName, fileShowName):
     try:
-      guideShowName = self.CheckShowNameTable(fileShowName)[0]
-      print("  Match found in database: {0}".format(fileShowName))
+      guideShowName = self.CheckShowNameTable(guideName, fileShowName)[0]
+      print("  [DB] Match found in database: {0}".format(fileShowName))
       return guideShowName
     except TypeError:
       return None
@@ -118,9 +118,133 @@ class RenamerDB:
   #################################################
   # AddShowName
   #################################################
-  def AddShowName(self, fileShowName, guideShowName):
-    print("  Adding match to database for future lookup {0}->{1}".format(fileShowName, guideShowName))
-    self.AddShowNameEntry(fileShowName, guideShowName, 0)
+  def AddShowName(self, guideName, fileShowName, guideShowName):
+    print("  [DB] Adding match to database for future lookup {0}->{1}".format(fileShowName, guideShowName))
+    self.AddShowNameEntry(guideName, fileShowName, guideShowName, 0)
+
+  #################################################
+  # GetConfigValue
+  #################################################
+  def GetConfigValue(self, fieldName):
+    dbCursor = self._GetCursor()
+    try:
+      dbCursor.execute("SELECT value FROM config WHERE name=?", (fieldName, ))
+    except sqlite3.OperationalError:
+      return None
+    else:
+      value = dbCursor.fetchone()
+      if value is None:
+        return None
+      else:
+        value = value[0]
+      print("    [DB] Found database match in config table {0}={1}".format(fieldName, value))
+      return value
+
+  #################################################
+  # SetConfigValue
+  #################################################
+  def SetConfigValue(self, fieldName, value):
+    dbCursor = self._GetCursor()
+    try:
+      dbCursor.execute("CREATE TABLE config (name text, value text)")
+    except sqlite3.OperationalError:
+      currentEntry = self.GetConfigValue(fieldName)
+    else:
+      currentEntry = None
+
+    if currentEntry is None:
+      print("    [DB] Adding {0}={1} to database config table".format(fieldName, value))
+      dbCursor.execute("INSERT INTO config VALUES (?,?)", (fieldName, value))
+    else:
+      print("    [DB] Updating {0} in database config table from {1} to {2}".format(fieldName, currentEntry, value))
+      dbCursor.execute("UPDATE config SET value=?, WHERE name=?", (value, fieldName))
+    self._CommitChanges()
+
+  #################################################
+  # GetSupportedFormats
+  #################################################
+  def GetSupportedFormats(self):
+    dbCursor = self._GetCursor()
+    try:
+      dbCursor.execute("SELECT * FROM supported_formats")
+    except sqlite3.OperationalError:
+      return None
+    else:
+      table = dbCursor.fetchall()
+      formatList = [i[0] for i in table]
+      return formatList
+
+  #################################################
+  # AddSupportedFormat
+  #################################################
+  def AddSupportedFormat(self, fileFormat):
+    fileFormat = fileFormat.lower()
+    match = None
+    dbCursor = self._GetCursor()
+    try:
+      dbCursor.execute("CREATE TABLE supported_formats (name text)")
+    except sqlite3.OperationalError:
+      currentFormats = self.GetSupportedFormats()
+      if currentFormats is not None:
+        for item in currentFormats:
+          if item == fileFormat:
+            match = 1
+
+    if match is None:
+      print("    [DB] Adding {0} to supported formats table".format(fileFormat))
+      dbCursor.execute("INSERT INTO supported_formats VALUES (?)", (fileFormat, ))
+    else:
+      print("    [DB] {0} already exists in supported formats table".format(fileFormat))
+    self._CommitChanges()
+
+  #################################################
+  # GetIgnoredDirs
+  #################################################
+  def GetIgnoredDirs(self):
+    dbCursor = self._GetCursor()
+    try:
+      dbCursor.execute("SELECT * FROM ignored_dirs")
+    except sqlite3.OperationalError:
+      return None
+    else:
+      table = dbCursor.fetchall()
+      dirList = [i[0] for i in table]
+      return dirList
+
+  #################################################
+  # AddIgnoredDir
+  #################################################
+  def AddIgnoredDir(self, ignoredDir):
+    print(ignoredDir)
+    match = None
+    dbCursor = self._GetCursor()
+    try:
+      dbCursor.execute("CREATE TABLE ignored_dirs (name text)")
+    except sqlite3.OperationalError:
+      ignoredDirList = self.GetIgnoredDirs()
+      print("ignoredDirList = {0}".format(ignoredDirList))
+      if ignoredDirList is not None:
+        for item in ignoredDirList:
+          if item == ignoredDir:
+            match = 1
+
+    if match is None:
+      print("    [DB] Adding {0} to ignored directories table".format(ignoredDir))
+      dbCursor.execute("INSERT INTO ignored_dirs VALUES (?)", (ignoredDir, ))
+    else:
+      print("    [DB] {0} already exists in ignored directories table".format(ignoredDir))
+    self._CommitChanges()
+
+  #################################################
+  # DropTable
+  #################################################
+  def DropTable(self, tableName):
+    print("    [DB] Deleting table {0}".format(tableName))
+    dbCursor = self._GetCursor()
+    try:
+      dbCursor.execute("DROP TABLE {0}".format(tableName))
+    except sqlite3.OperationalError:
+      pass
 
   #################################################
   # Test

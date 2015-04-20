@@ -16,11 +16,10 @@ class TVRenamer:
   #################################################
   # constructor
   #################################################
-  def __init__(self, tvFileList, guideName = 'EPGUIDES', destDir = None, dbPath = None):
+  def __init__(self, db, tvFileList, guideName = epguides.EPGuidesLookup.GUIDE_NAME, destDir = None):
+    self._db        = db
     self._fileList  = tvFileList
     self._targetDir = destDir
-    if dbPath is not None:
-      self._db        = database.RenamerDB(dbPath)
     self._SetGuide(guideName)
 
   # *** INTERNAL CLASSES *** #
@@ -30,10 +29,10 @@ class TVRenamer:
   # Supported: EPGUIDES
   ############################################################################
   def _SetGuide(self, guideName):
-    if(guideName == 'EPGUIDES'):
+    if(guideName == epguides.EPGuidesLookup.GUIDE_NAME):
       self._guide = epguides.EPGuidesLookup()
     else:
-      raise Exception("Unknown guide set for TVRenamer selection")
+      raise Exception("[RENAMER] Unknown guide set for TVRenamer selection")
 
   ############################################################################
   # _GetUniqueFileShowNames
@@ -46,25 +45,34 @@ class TVRenamer:
 
   ############################################################################
   # _GetGuideShowName
-  # Look up show name from guide. Allows user to accept or decline best match
-  # or to provide an alternate match to lookup.
+  # Look up show name from database or guide. Allows user to accept or
+  # decline best match or to provide an alternate match to lookup.
   ############################################################################
-  def _GetGuideShowName(self, string):
-    # Look up string in guide to find best tv show match
-    print("Looking up show name for: {0}".format(string))
-    showName = self._db.GetShowName(string)
-    showNameList = self._guide.ShowNameLookUp(string)
+  def _GetGuideShowName(self, stringSearch, origStringSearch = None):
+    if origStringSearch is None:
+      print("[RENAMER] Looking up show name for: {0}".format(stringSearch))
+      origStringSearch = stringSearch
+
+    showName = self._db.GetShowName(self._guide.GUIDE_NAME, stringSearch)
+
+    if showName is not None:
+      if origStringSearch != stringSearch:
+        self._db.AddShowName(self._guide.GUIDE_NAME, origStringSearch, showName)
+      return showName
+
+    showNameList = self._guide.ShowNameLookUp(stringSearch)
 
     showNameListStr = ', '.join(showNameList)
 
     if len(showNameList) == 1:
-      prompt = "  Match found: {0}\n".format(showNameListStr) \
-             + "  Enter 'y' to accept show name or e"
+      print("  [RENAMER] Match found: {0}".format(showNameListStr))
+      prompt = "  [RENAMER] Enter 'y' to accept show name or e"
     elif len(showNameList) > 1:
-      prompt = "  Multiple possible matches found: {0}\n".format(showNameListStr) \
-             + "  Enter correct show name from list or e"
+      print("  [RENAMER] Multiple possible matches found: {0}".format(showNameListStr))
+      prompt = "  [RENAMER] Enter correct show name from list or e"
     else:
-      prompt = "  No match found\n  E"
+      print("  [RENAMER] No match found")
+      prompt = "  [RENAMER] E"
 
     prompt = prompt + "nter a different show name to look up or " \
            + "enter 'x' to skip this show: "
@@ -74,12 +82,14 @@ class TVRenamer:
     if response.lower() == 'x':
       return None
     elif response.lower() == 'y' and len(showNameList) == 1:
+      self._db.AddShowName(self._guide.GUIDE_NAME, origStringSearch, showNameList[0])
       return showNameList[0]
     elif len(showNameList) > 1:
       for showName in showNameList:
         if response.lower() == showName.lower():
+          self._db.AddShowName(self._guide.GUIDE_NAME, origStringSearch, showName)
           return(showName)
-    return self._GetGuideShowName(response)
+    return self._GetGuideShowName(response, origStringSearch)
 
   ############################################################################
   # _RenameFile
@@ -88,10 +98,10 @@ class TVRenamer:
   def _RenameFile(self, tvFile):
     processedDir = 'PROCESSED'
     if tvFile.newFilePath is not None:
-      print("Copying {0} to {1}".format(tvFile.origFilePath, tvFile.newFilePath))
+      print("[RENAMER] Copying {0} to {1}".format(tvFile.origFilePath, tvFile.newFilePath))
       # shutil copy
 
-      print("Moving original file {0} to processed dir {1}\n".format(tvFile.origFilePath, processedDir))
+      print("[RENAMER] Moving original file {0} to processed dir {1}\n".format(tvFile.origFilePath, processedDir))
       #shutil.move(tvFile.origFilePath, tvFile.newFilePath)
 
   # *** EXTERNAL CLASSES *** #
@@ -110,11 +120,7 @@ class TVRenamer:
     #print(uniqueFileShowList)
     print("\n*** -------------------------------- ***")
     for fileShowName in uniqueFileShowList:
-      showNameMatchDict[fileShowName] = self._db.GetShowName(fileShowName)
-      if showNameMatchDict[fileShowName] is None:
-        showNameMatchDict[fileShowName] = self._GetGuideShowName(fileShowName)
-        if showNameMatchDict[fileShowName] is not None:
-          self._db.AddShowName(fileShowName, showNameMatchDict[fileShowName])
+      showNameMatchDict[fileShowName] = self._GetGuideShowName(fileShowName)
 
     skippedFileList = []
     activeFileList = []
@@ -135,22 +141,22 @@ class TVRenamer:
         skippedFileList.append(tvFile)
 
     print("\n*** -------------------------------- ***")
-    print("Renaming files:\n")
+    print("[RENAMER] Renaming files:\n")
     for tvFile in activeFileList:
       tvFile.GenerateNewFilePath(self._targetDir)
       print(tvFile.Convert2String(), "\n")
       self._RenameFile(tvFile)
 
     print("\n*** -------------------------------- ***")
-    print("Skipped files:")
+    print("[RENAMER] Skipped files:")
     for tvFile in skippedFileList:
       if tvFile.guideShowName is None:
-        print("  {0} (Missing show name)".format(tvFile.origFilePath))
+        print("  [RENAMER] {0} (Missing show name)".format(tvFile.origFilePath))
       elif tvFile.episodeName is None:
-        print("  {0} (Missing episode name)".format(tvFile.origFilePath))
+        print("  [RENAMER] {0} (Missing episode name)".format(tvFile.origFilePath))
       elif tvFile.newFilePath is None:
-        print("  {0} (Failed to create new file path)".format(tvFile.origFilePath))
+        print("  [RENAMER] {0} (Failed to create new file path)".format(tvFile.origFilePath))
       else:
-        print("  {0} (Unknown reason)".format(tvFile.origFilePath))
+        print("  [RENAMER] {0} (Unknown reason)".format(tvFile.origFilePath))
 
 

@@ -15,6 +15,7 @@ import util
 # EPGuidesLookup
 #################################################
 class EPGuidesLookup:
+  GUIDE_NAME = 'EPGUIDES'
   ALLSHOW_IDLIST_URL = 'http://epguides.com/common/allshows.txt'
   EPISODE_LOOKUP_URL = 'http://epguides.com/common/exportToCSV.asp'
   SAVE_DIR = 'test_dir'
@@ -52,7 +53,7 @@ class EPGuidesLookup:
 
       # Save to file to avoid multiple url requests in same day
       with open(saveFilePath, 'w') as allShowsFile:
-        print("Adding new EPGUIDES file: {0}".format(saveFilePath))
+        print("[EPGUIDE] Adding new EPGUIDES file: {0}".format(saveFilePath))
         allShowsFile.write(self._allShowList)
 
       # Delete old copies of this file
@@ -60,7 +61,7 @@ class EPGuidesLookup:
       globFilePath = os.path.join(self.SAVE_DIR, globPattern)
       for filePath in glob.glob(globFilePath):
         if filePath != saveFilePath:
-          print('Removing old EPGUIDES file:', filePath)
+          print('[EPGUIDE] Removing old EPGUIDES file:', filePath)
           os.remove(filePath)
 
   ############################################################################
@@ -160,7 +161,7 @@ class EPGuidesLookup:
           pass
         else:
           if int(row[seasonIndex]) == int(season) and int(row[episodeIndex]) == int(episode):
-            print("Episode name is {0}".format(row[titleIndex]))
+            print("[EPGUIDE] Episode name is {0}".format(row[titleIndex]))
             return row[titleIndex]
     return None
 
@@ -191,16 +192,16 @@ class EPGuidesLookup:
   # and episode number
   ############################################################################
   def EpisodeNameLookUp(self, showName, season, episode):
-    print("Looking up episode name for {0} S{1}E{2}".format(showName, season, episode))
+    print("[EPGUIDE] Looking up episode name for {0} S{1}E{2}".format(showName, season, episode))
     showID = self._GetShowID(showName)
     if showID is not None:
       try:
         self._showInfoDict[showID]
       except KeyError:
-        print("Looking up info for new show: {0}(ID:{1})".format(showName, showID))
+        print("[EPGUIDE] Looking up info for new show: {0}(ID:{1})".format(showName, showID))
         urlData = util.WebLookup(self.EPISODE_LOOKUP_URL, {'rage': showID})
         self._showInfoDict[showID] = self._ExtractDataFromShowHtml(urlData)
       else:
-        print("Reusing show info previous obtained for: {0}({1})".format(showName, showID))
+        print("[EPGUIDE] Reusing show info previous obtained for: {0}({1})".format(showName, showID))
       finally:
         return self._GetEpisodeName(showID, season, episode)
