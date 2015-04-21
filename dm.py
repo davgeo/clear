@@ -7,6 +7,7 @@
 import renamer
 import database
 import util
+import logzila
 
 #################################################
 # DownloadManager
@@ -26,14 +27,15 @@ class DownloadManager:
   # _GetConfigDir
   ############################################################################
   def _GetConfigDir(self, configKey, strDescriptor):
-    print("  [DM] Loading {0} from database:".format(strDescriptor))
+    logzila.Log.Info("DM", "Loading {0} from database:".format(strDescriptor))
+    logzila.Log.IncreaseIndent()
     configValue = self._db.GetConfigValue(configKey)
     if configValue is None:
-      print("    [DM] No {0} exists in database".format(strDescriptor))
+      logzila.Log.Info("DM", "No {0} exists in database".format(strDescriptor))
 
       while configValue is None:
-        prompt = "    [DM] Enter new {0} or 'x' to exit: ".format(strDescriptor)
-        response = input(prompt)
+        prompt = "Enter new {0} or 'x' to exit: ".format(strDescriptor)
+        response = logzila.Log.Input("DM", prompt)
 
         if response.lower() == 'x':
           sys.exit(0)
@@ -41,26 +43,28 @@ class DownloadManager:
           configValue = os.path.abspath(response)
           self._db.SetConfigValue(configKey, configValue)
         else:
-          print("    [DM] {0} is not recognised as a directory".format(response))
-    print("    [DM] Using {0} {1}".format(strDescriptor, configValue))
+          logzila.Log.Info("DM", "{0} is not recognised as a directory".format(response))
+    logzila.Log.Info("DM", "Using {0} {1}".format(strDescriptor, configValue))
+    logzila.Log.DecreaseIndent()
     return configValue
 
   ############################################################################
   # _GetSupportedFormats
   ############################################################################
   def _GetSupportedFormats(self):
-    print("  [DM] Loading supported formats from database:")
+    logzila.Log.Info("DM", "Loading supported formats from database:")
+    logzila.Log.IncreaseIndent()
     formatList = self._db.GetSupportedFormats()
     if formatList is None:
-      print("    [DM] No format list exists in database")
+      logzila.Log.Info("DM", "No format list exists in database")
       inputDone = None
       formatList = []
       while inputDone is None:
-        prompt = "    [DM] Enter new format (e.g. .mp4, .avi)," \
+        prompt = "Enter new format (e.g. .mp4, .avi)," \
                              "'r' to reset format list, " \
                              "'f' to finish or " \
                              "'x' to exit: "
-        response = input(prompt)
+        response = logzila.Log.Input("DM", prompt)
 
         if response.lower() == 'x':
           sys.exit(0)
@@ -76,25 +80,27 @@ class DownloadManager:
       formatList = set(formatList)
       for fileFormat in formatList:
         db.AddSupportedFormat(fileFormat)
-    print("    [DM] Using supported formats: {0}".format(formatList))
+    logzila.Log.Info("DM", "Using supported formats: {0}".format(formatList))
+    logzila.Log.DecreaseIndent()
     return formatList
 
   ############################################################################
   # GetIgnoredDirs
   ############################################################################
   def _GetIgnoredDirs(self):
-    print("  [DM] Loading ignored directories from database:")
+    logzila.Log.Info("DM", "Loading ignored directories from database:")
+    logzila.Log.IncreaseIndent()
     ignoredDirs = self._db.GetIgnoredDirs()
     if ignoredDirs is None:
-      print("    [DM] No ignored directories exist in database")
+      logzila.Log.Info("DM", "No ignored directories exist in database")
       inputDone = None
       ignoredDirs = []
       while inputDone is None:
-        prompt = "    [DM] Enter new directory to ignore (e.g. DONE)," \
+        prompt = "Enter new directory to ignore (e.g. DONE)," \
                              "'r' to reset directory list, " \
                              "'f' to finish or " \
                              "'x' to exit: "
-        response = input(prompt)
+        response = logzila.Log.Input("DM", prompt)
 
         if response.lower() == 'x':
           sys.exit(0)
@@ -108,15 +114,17 @@ class DownloadManager:
       #ignoredDirs = set(ignoredDirs)
       for ignoredDir in ignoredDirs:
         db.AddIgnoredDir(ignoredDir)
-    print("    [DM] Using supported formats: {0}".format(ignoredDirs))
+    logzila.Log.Info("DM", "Using supported formats: {0}".format(ignoredDirs))
+    logzila.Log.DecreaseIndent()
     return ignoredDirs
 
   ############################################################################
   # GetDatabaseConfig
   ############################################################################
   def _GetDatabaseConfig(self):
-    print("\n*** -------------------------------- ***")
-    print("[DM] Getting configuration variables...")
+    logzila.Log.Seperator()
+    logzila.Log.Info("DM", "Getting configuration variables...")
+    logzila.Log.IncreaseIndent()
 
     # DOWNLOAD DIRECTORY
     self._downloadDir = self._GetConfigDir('DOWNLOAD_DIR', 'download directory')
@@ -134,10 +142,11 @@ class DownloadManager:
     # IGNORED DIRECTORIES
     self._ignoredDirsList = self._GetIgnoredDirs()
 
-    print("Download directory = {0}".format(self._downloadDir))
-    print("Target directory = {0}".format(self._targetDir))
-    print("Supported formats = {0}".format(self._supportedFormatsList))
-    print("Ignored directory list = {0}".format(self._ignoredDirsList))
+    logzila.Log.Info("DM", "Download directory = {0}".format(self._downloadDir))
+    logzila.Log.Info("DM", "Target directory = {0}".format(self._targetDir))
+    logzila.Log.Info("DM", "Supported formats = {0}".format(self._supportedFormatsList))
+    logzila.Log.Info("DM", "Ignored directory list = {0}".format(self._ignoredDirsList))
+    logzila.Log.DecreaseIndent()
 
   ############################################################################
   # ProcessDownloadFolder
@@ -148,6 +157,7 @@ class DownloadManager:
   def ProcessDownloadFolder(self):
     tvFileList = []
     self._GetDatabaseConfig()
+    logzila.Log.Seperator()
     util.GetSupportedFilesInDir(self._downloadDir, tvFileList, self._supportedFormatsList, self._ignoredDirsList)
     tvRenamer = renamer.TVRenamer(self._db, tvFileList, 'EPGUIDES', self._targetDir)
     tvRenamer.Run()

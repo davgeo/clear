@@ -10,6 +10,7 @@ import xml.etree.ElementTree as etree
 
 # Local file imports
 import util
+import logzila
 
 #################################################
 # EPGuidesLookup
@@ -53,7 +54,7 @@ class EPGuidesLookup:
 
       # Save to file to avoid multiple url requests in same day
       with open(saveFilePath, 'w') as allShowsFile:
-        print("[EPGUIDE] Adding new EPGUIDES file: {0}".format(saveFilePath))
+        logzila.Log.Info("EPGUIDE", "Adding new EPGUIDES file: {0}".format(saveFilePath))
         allShowsFile.write(self._allShowList)
 
       # Delete old copies of this file
@@ -61,7 +62,7 @@ class EPGuidesLookup:
       globFilePath = os.path.join(self.SAVE_DIR, globPattern)
       for filePath in glob.glob(globFilePath):
         if filePath != saveFilePath:
-          print('[EPGUIDE] Removing old EPGUIDES file:', filePath)
+          logzila.Log.Info("EPGUIDE", "Removing old EPGUIDES file: {0}".format(filePath))
           os.remove(filePath)
 
   ############################################################################
@@ -161,7 +162,7 @@ class EPGuidesLookup:
           pass
         else:
           if int(row[seasonIndex]) == int(season) and int(row[episodeIndex]) == int(episode):
-            print("[EPGUIDE] Episode name is {0}".format(row[titleIndex]))
+            logzila.Log.Info("EPGUIDE", "Episode name is {0}".format(row[titleIndex]))
             return row[titleIndex]
     return None
 
@@ -192,16 +193,20 @@ class EPGuidesLookup:
   # and episode number
   ############################################################################
   def EpisodeNameLookUp(self, showName, season, episode):
-    print("[EPGUIDE] Looking up episode name for {0} S{1}E{2}".format(showName, season, episode))
+    logzila.Log.Info("EPGUIDE", "Looking up episode name for {0} S{1}E{2}".format(showName, season, episode))
+    logzila.Log.IncreaseIndent()
     showID = self._GetShowID(showName)
     if showID is not None:
       try:
         self._showInfoDict[showID]
       except KeyError:
-        print("[EPGUIDE] Looking up info for new show: {0}(ID:{1})".format(showName, showID))
+        logzila.Log.Info("EPGUIDE", "Looking up info for new show: {0}(ID:{1})".format(showName, showID))
         urlData = util.WebLookup(self.EPISODE_LOOKUP_URL, {'rage': showID})
         self._showInfoDict[showID] = self._ExtractDataFromShowHtml(urlData)
       else:
-        print("[EPGUIDE] Reusing show info previous obtained for: {0}({1})".format(showName, showID))
+        logzila.Log.Info("EPGUIDE", "Reusing show info previous obtained for: {0}({1})".format(showName, showID))
       finally:
-        return self._GetEpisodeName(showID, season, episode)
+        episodeName = self._GetEpisodeName(showID, season, episode)
+        logzila.Log.DecreaseIndent()
+        return episodeName
+    logzila.Log.DecreaseIndent()

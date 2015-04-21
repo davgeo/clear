@@ -8,6 +8,7 @@ import shutil
 import epguides
 import tvfile
 import database
+import logzila
 
 #################################################
 # TVRenamer
@@ -50,7 +51,8 @@ class TVRenamer:
   ############################################################################
   def _GetGuideShowName(self, stringSearch, origStringSearch = None):
     if origStringSearch is None:
-      print("[RENAMER] Looking up show name for: {0}".format(stringSearch))
+      logzila.Log.Info("RENAMER", "Looking up show name for: {0}".format(stringSearch))
+      logzila.Log.IncreaseIndent()
       origStringSearch = stringSearch
 
     showName = self._db.GetShowName(self._guide.GUIDE_NAME, stringSearch)
@@ -58,6 +60,7 @@ class TVRenamer:
     if showName is not None:
       if origStringSearch != stringSearch:
         self._db.AddShowName(self._guide.GUIDE_NAME, origStringSearch, showName)
+      logzila.Log.DecreaseIndent()
       return showName
 
     showNameList = self._guide.ShowNameLookUp(stringSearch)
@@ -65,29 +68,32 @@ class TVRenamer:
     showNameListStr = ', '.join(showNameList)
 
     if len(showNameList) == 1:
-      print("  [RENAMER] Match found: {0}".format(showNameListStr))
-      prompt = "  [RENAMER] Enter 'y' to accept show name or e"
+      logzila.Log.Info("RENAMER", "Match found: {0}".format(showNameListStr))
+      prompt = "Enter 'y' to accept show name or e"
     elif len(showNameList) > 1:
-      print("  [RENAMER] Multiple possible matches found: {0}".format(showNameListStr))
-      prompt = "  [RENAMER] Enter correct show name from list or e"
+      logzila.Log.Info("RENAMER", "Multiple possible matches found: {0}".format(showNameListStr))
+      prompt = "Enter correct show name from list or e"
     else:
-      print("  [RENAMER] No match found")
-      prompt = "  [RENAMER] E"
+      logzila.Log.Info("RENAMER", "No match found")
+      prompt = "E"
 
     prompt = prompt + "nter a different show name to look up or " \
            + "enter 'x' to skip this show: "
 
-    response = input(prompt)
+    response = logzila.Log.Input('RENAMER', prompt)
 
     if response.lower() == 'x':
+      logzila.Log.DecreaseIndent()
       return None
     elif response.lower() == 'y' and len(showNameList) == 1:
       self._db.AddShowName(self._guide.GUIDE_NAME, origStringSearch, showNameList[0])
+      logzila.Log.DecreaseIndent()
       return showNameList[0]
     elif len(showNameList) > 1:
       for showName in showNameList:
         if response.lower() == showName.lower():
           self._db.AddShowName(self._guide.GUIDE_NAME, origStringSearch, showName)
+          logzila.Log.DecreaseIndent()
           return(showName)
     return self._GetGuideShowName(response, origStringSearch)
 
@@ -98,10 +104,10 @@ class TVRenamer:
   def _RenameFile(self, tvFile):
     processedDir = 'PROCESSED'
     if tvFile.newFilePath is not None:
-      print("[RENAMER] Copying {0} to {1}".format(tvFile.origFilePath, tvFile.newFilePath))
+      logzila.Log.Info("RENAMER", "Copying {0} to {1}".format(tvFile.origFilePath, tvFile.newFilePath))
       # shutil copy
 
-      print("[RENAMER] Moving original file {0} to processed dir {1}\n".format(tvFile.origFilePath, processedDir))
+      logzila.Log.Info("RENAMER", "Moving original file {0} to processed dir {1}\n".format(tvFile.origFilePath, processedDir))
       #shutil.move(tvFile.origFilePath, tvFile.newFilePath)
 
   # *** EXTERNAL CLASSES *** #
@@ -118,13 +124,13 @@ class TVRenamer:
     showNameMatchDict = {}
     uniqueFileShowList = self._GetUniqueFileShowNames(self._fileList)
     #print(uniqueFileShowList)
-    print("\n*** -------------------------------- ***")
+    logzila.Log.Seperator()
     for fileShowName in uniqueFileShowList:
       showNameMatchDict[fileShowName] = self._GetGuideShowName(fileShowName)
 
     skippedFileList = []
     activeFileList = []
-    print("\n*** -------------------------------- ***")
+    logzila.Log.Seperator()
     for tvFile in self._fileList:
       tvFile.guideShowName = showNameMatchDict[tvFile.fileShowName]
       if tvFile.guideShowName is not None:
@@ -140,23 +146,25 @@ class TVRenamer:
       else:
         skippedFileList.append(tvFile)
 
-    print("\n*** -------------------------------- ***")
-    print("[RENAMER] Renaming files:\n")
+    logzila.Log.Seperator()
+    logzila.Log.Info("RENAMER", "Renaming files:\n")
     for tvFile in activeFileList:
       tvFile.GenerateNewFilePath(self._targetDir)
-      print(tvFile.Convert2String(), "\n")
+      logzila.Log.Info("RENAMER", tvFile.Convert2String()+"\n")
       self._RenameFile(tvFile)
 
-    print("\n*** -------------------------------- ***")
-    print("[RENAMER] Skipped files:")
+    logzila.Log.Seperator()
+    logzila.Log.Info("RENAMER", "Skipped files:")
+    logzila.Log.IncreaseIndent()
     for tvFile in skippedFileList:
       if tvFile.guideShowName is None:
-        print("  [RENAMER] {0} (Missing show name)".format(tvFile.origFilePath))
+        logzila.Log.Info("RENAMER", "{0} (Missing show name)".format(tvFile.origFilePath))
       elif tvFile.episodeName is None:
-        print("  [RENAMER] {0} (Missing episode name)".format(tvFile.origFilePath))
+        logzila.Log.Info("RENAMER", "{0} (Missing episode name)".format(tvFile.origFilePath))
       elif tvFile.newFilePath is None:
-        print("  [RENAMER] {0} (Failed to create new file path)".format(tvFile.origFilePath))
+        logzila.Log.Info("RENAMER", "{0} (Failed to create new file path)".format(tvFile.origFilePath))
       else:
-        print("  [RENAMER] {0} (Unknown reason)".format(tvFile.origFilePath))
+        logzila.Log.Info("RENAMER", "{0} (Unknown reason)".format(tvFile.origFilePath))
+    logzila.Log.DecreaseIndent()
 
 

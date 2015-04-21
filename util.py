@@ -8,6 +8,7 @@ import os
 
 # Local file imports
 import tvfile
+import logzila
 
 ############################################################################
 # GetBestStringMatchValue
@@ -55,7 +56,7 @@ def GetBestStringMatchValue(string1, string2):
 ############################################################################
 def WebLookup(url, urlQuery=None):
   # Look up webpage at given url with optional query string
-  print("[UTIL] Looking up info from URL:{0} with QUERY:{1})".format(url, urlQuery))
+  logzila.Log.Info("UTIL", "Looking up info from URL:{0} with QUERY:{1})".format(url, urlQuery))
   response = requests.get(url, params=urlQuery)
   if(response.status_code == requests.codes.ok):
     return(response.text)
@@ -67,7 +68,7 @@ def WebLookup(url, urlQuery=None):
 # Get all supported files from given directory folder
 ############################################################################
 def GetSupportedFilesInDir(fileDir, fileList, supportedFormatList, ignoreDirList):
-  print("[UTIL] Parsing file directory:", fileDir)
+  logzila.Log.Info("UTIL", "Parsing file directory: {0}".format(fileDir))
   if os.path.isdir(fileDir) is True:
     for globPath in glob.glob(os.path.join(fileDir, '*')):
       if os.path.splitext(globPath)[1] in supportedFormatList:
@@ -76,11 +77,11 @@ def GetSupportedFilesInDir(fileDir, fileList, supportedFormatList, ignoreDirList
           fileList.append(newFile)
       elif os.path.isdir(globPath):
         if(os.path.basename(globPath) in ignoreDirList):
-          print("[UTIL] Skipping ignored directory", globPath)
+          logzila.Log.Info("UTIL", "Skipping ignored directory: {0}".format(globPath))
         else:
           GetSupportedFilesInDir(globPath, fileList, supportedFormatList, ignoreDirList)
       else:
-        print("[UTIL] Ignoring unsupported file or folder:", item)
+        logzila.Log.Info("UTIL", "Ignoring unsupported file or folder: {0}".format(item))
   else:
-    print("[UTIL] Invalid non-directory path given to parse")
+    logzila.Log.Info("UTIL", "Invalid non-directory path given to parse")
 

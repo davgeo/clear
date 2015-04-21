@@ -3,6 +3,9 @@
 import os
 import re
 
+# Local file imports
+import logzila
+
 #################################################
 # TVFile
 #################################################
@@ -34,9 +37,9 @@ class TVFile:
 
     if len(match) != 1:
       if len(match) == 0:
-        print("[TVFILE] Incompatible filename no season and episode match detected: {0}".format(self.origFilePath))
+        logzila.Log.Info("TVFILE", "Incompatible filename no season and episode match detected: {0}".format(self.origFilePath))
       else:
-        print("[TVFILE] Incompatible filename multiple different season and episode matches detected: {0}".format(self.origFilePath))
+        logzila.Log.Info("TVFILE", "Incompatible filename multiple different season and episode matches detected: {0}".format(self.origFilePath))
       return(False)
     else:
       (self.seasonNum, self.episodeNum) = match.pop()
@@ -62,7 +65,7 @@ class TVFile:
   # Convert2String
   ############################################################################
   def Convert2String(self):
-    c2s = "[TVFILE] TV File details are:" \
+    c2s = "TV File details are:" \
                 + "\n  Original File Path      = {0}".format(self.origFilePath)
 
     # Display show name from guide (preferred) or file if present

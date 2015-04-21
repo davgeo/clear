@@ -5,6 +5,7 @@ import sqlite3
 # Custom Python package imports
 
 # Local file imports
+import logzila
 
 #################################################
 # RenamerDB
@@ -48,8 +49,8 @@ class RenamerDB:
     if response in validList:
       return response
     else:
-      prompt = "  [DB] Unknown response given - please reenter one of [{0}]: ".format('/'.join(validList))
-      response = input(prompt)
+      prompt = "Unknown response given - please reenter one of [{0}]: ".format('/'.join(validList))
+      response = logzila.Log.Input("DM", prompt)
       self._CheckAcceptableUserResponse(response, validList)
 
   #################################################
@@ -68,20 +69,20 @@ class RenamerDB:
     if existingTableEntry is None:
       dbCursor.execute("INSERT INTO showname VALUES (?,?,?,?)", (guideName, fileShowName, guideShowName, guideID))
     elif existingTableEntry[0] != guideShowName:
-      print("[DB] *WARNING* Database guide show name mismatch for file show name {0}".format(fileShowName))
-      print("            [DB] New guide show name      = {0} (ID: {1})".format(guideShowName, guideID))
-      print("            [DB] Database guide show name = {0} (ID: {1})".format(existingTableEntry[0], existingTableEntry[1]))
-      prompt = "  [DB] Do you want to update the database with the new show name value? [y/n]: "
-      response = input(prompt).lower()
+      logzila.Log.Info("DB", "*WARNING* Database guide show name mismatch for file show name {0}".format(fileShowName))
+      logzila.Log.Info("DB", "New guide show name      = {0} (ID: {1})".format(guideShowName, guideID))
+      logzila.Log.Info("DB", "Database guide show name = {0} (ID: {1})".format(existingTableEntry[0], existingTableEntry[1]))
+      prompt = "Do you want to update the database with the new show name value? [y/n]: "
+      response = logzila.Log.Input("DM", prompt).lower()
       self._CheckAcceptableUserResponse(response, ('y', 'n'))
       if response == 'y':
         dbCursor.execute("UPDATE showname SET guideShowName=?, guideID=? WHERE guideName=? AND fileShowName=?", (guideShowName, guideID, guideName, fileShowName))
     elif existingTableEntry[1] != guideID:
-      print("[DB] *WARNING* Database show ID mismatch for file show name {0}".format(fileShowName))
-      print("            [DB] New ID      = {0} (Showname: {1})".format(guideID, guideShowName))
-      print("            [DB] Database ID = {0} (Showname: {1})".format(existingTableEntry[1], existingTableEntry[0]))
-      prompt = "  [DB] Do you want to update the database with the new ID value? [y/n]: "
-      response = input(prompt).lower()
+      logzila.Log.Info("DB", "*WARNING* Database show ID mismatch for file show name {0}".format(fileShowName))
+      logzila.Log.Info("DB", "New ID      = {0} (Showname: {1})".format(guideID, guideShowName))
+      logzila.Log.Info("DB", "Database ID = {0} (Showname: {1})".format(existingTableEntry[1], existingTableEntry[0]))
+      prompt = "Do you want to update the database with the new ID value? [y/n]: "
+      response = logzila.Log.Input("DM", prompt).lower()
       self._CheckAcceptableUserResponse(response, ('y', 'n'))
       if response == 'y':
         dbCursor.execute("UPDATE showname SET guideShowName=?, guideID=? WHERE guideName=? AND fileShowName=?", (guideShowName, guideID, guideName, fileShowName))
@@ -110,7 +111,7 @@ class RenamerDB:
   def GetShowName(self, guideName, fileShowName):
     try:
       guideShowName = self.CheckShowNameTable(guideName, fileShowName)[0]
-      print("  [DB] Match found in database: {0}".format(fileShowName))
+      logzila.Log.Info("DB", "Match found in database: {0}".format(fileShowName))
       return guideShowName
     except TypeError:
       return None
@@ -119,7 +120,7 @@ class RenamerDB:
   # AddShowName
   #################################################
   def AddShowName(self, guideName, fileShowName, guideShowName):
-    print("  [DB] Adding match to database for future lookup {0}->{1}".format(fileShowName, guideShowName))
+    logzila.Log.Info("DB", "Adding match to database for future lookup {0}->{1}".format(fileShowName, guideShowName))
     self.AddShowNameEntry(guideName, fileShowName, guideShowName, 0)
 
   #################################################
@@ -137,7 +138,7 @@ class RenamerDB:
         return None
       else:
         value = value[0]
-      print("    [DB] Found database match in config table {0}={1}".format(fieldName, value))
+      logzila.Log.Info("DB", "Found database match in config table {0}={1}".format(fieldName, value))
       return value
 
   #################################################
@@ -153,10 +154,10 @@ class RenamerDB:
       currentEntry = None
 
     if currentEntry is None:
-      print("    [DB] Adding {0}={1} to database config table".format(fieldName, value))
+      logzila.Log.Info("DB", "Adding {0}={1} to database config table".format(fieldName, value))
       dbCursor.execute("INSERT INTO config VALUES (?,?)", (fieldName, value))
     else:
-      print("    [DB] Updating {0} in database config table from {1} to {2}".format(fieldName, currentEntry, value))
+      logzila.Log.Info("DB", "Updating {0} in database config table from {1} to {2}".format(fieldName, currentEntry, value))
       dbCursor.execute("UPDATE config SET value=?, WHERE name=?", (value, fieldName))
     self._CommitChanges()
 
@@ -191,10 +192,10 @@ class RenamerDB:
             match = 1
 
     if match is None:
-      print("    [DB] Adding {0} to supported formats table".format(fileFormat))
+      logzila.Log.Info("DB", "Adding {0} to supported formats table".format(fileFormat))
       dbCursor.execute("INSERT INTO supported_formats VALUES (?)", (fileFormat, ))
     else:
-      print("    [DB] {0} already exists in supported formats table".format(fileFormat))
+      logzila.Log.Info("DB", "{0} already exists in supported formats table".format(fileFormat))
     self._CommitChanges()
 
   #################################################
@@ -229,17 +230,17 @@ class RenamerDB:
             match = 1
 
     if match is None:
-      print("    [DB] Adding {0} to ignored directories table".format(ignoredDir))
+      logzila.Log.Info("DB", "Adding {0} to ignored directories table".format(ignoredDir))
       dbCursor.execute("INSERT INTO ignored_dirs VALUES (?)", (ignoredDir, ))
     else:
-      print("    [DB] {0} already exists in ignored directories table".format(ignoredDir))
+      logzila.Log.Info("DB", "{0} already exists in ignored directories table".format(ignoredDir))
     self._CommitChanges()
 
   #################################################
   # DropTable
   #################################################
   def DropTable(self, tableName):
-    print("    [DB] Deleting table {0}".format(tableName))
+    logzila.Log.Info("DB", "Deleting table {0}".format(tableName))
     dbCursor = self._GetCursor()
     try:
       dbCursor.execute("DROP TABLE {0}".format(tableName))
