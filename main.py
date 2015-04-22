@@ -19,15 +19,43 @@ TV LIBRARY
 '''
 # Python default package imports
 import sys
+import os
+import argparse
 
 # Local file imports
 import dm
+import logzila
+
+# Variables
+DATABASE_PATH = 'dm.db'
+
+############################################################################
+# ProcessArguments
+############################################################################
+def ProcessArguments():
+  parser = argparse.ArgumentParser()
+  parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
+  parser.add_argument('--reset', help='resets database', action="store_true")
+  args = parser.parse_args()
+
+  if args.tags:
+    logzila.Log.tagsEnabled = 1;
+
+  if args.reset:
+    logzila.Log.Info("MAIN", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE")
+    response = logzila.Log.Input("MAIN", "Are you sure you want to proceed [y/n]? ")
+    if response.lower() == 'y':
+      if(os.path.isfile(DATABASE_PATH)):
+        os.remove(DATABASE_PATH)
+    else:
+      sys.exit(0)
 
 ############################################################################
 # main
 ############################################################################
 def main():
-  prog = dm.DownloadManager('dm.db')
+  ProcessArguments()
+  prog = dm.DownloadManager(DATABASE_PATH)
   prog.ProcessDownloadFolder()
 
 ############################################################################

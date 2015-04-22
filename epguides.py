@@ -173,18 +173,7 @@ class EPGuidesLookup:
   ############################################################################
   def ShowNameLookUp(self, string):
     self._GetTitleList()
-
-    # Get title which has the best match to showName
-    ratioMatch = []
-    for title in self._showTitleList:
-      ratioMatch.append(util.GetBestStringMatchValue(string, title))
-
-    maxRatio = max(ratioMatch)
-    matchTitleIndex = [i for i, j in enumerate(ratioMatch) if j == maxRatio]
-
-    showName = []
-    for index in matchTitleIndex:
-      showName.append(self._showTitleList[index])
+    showName = util.GetBestMatch(string, self._showTitleList)
     return(showName)
 
   ############################################################################

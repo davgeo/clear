@@ -11,6 +11,53 @@ import tvfile
 import logzila
 
 ############################################################################
+# UserAcceptance
+############################################################################
+def UserAcceptance(matchList):
+  matchString = ', '.join(matchList)
+
+  if len(matchList) == 1:
+    logzila.Log.Info("UTIL", "Match found: {0}".format(matchString))
+    prompt = "Enter 'y' to accept this match or e"
+  elif len(matchList) > 1:
+    logzila.Log.Info("UTIL", "Multiple possible matches found: {0}".format(matchString))
+    prompt = "Enter correct match from list or e"
+  else:
+    logzila.Log.Info("UTIL", "No match found")
+    prompt = "E"
+
+  prompt = prompt + "nter a different string to look up or " \
+         + "enter 'x' to skip this show: "
+
+  response = logzila.Log.Input('UTIL', prompt)
+
+  if response.lower() == 'x':
+    return None
+  elif response.lower() == 'y' and len(matchList) == 1:
+    return matchList[0]
+  elif len(matchList) > 1:
+    for match in matchList:
+      if response.lower() == match.lower():
+        return match
+  return response
+
+############################################################################
+# GetBestMatch
+############################################################################
+def GetBestMatch(target, matchList):
+  ratioMatch = []
+  for item in matchList:
+    ratioMatch.append(GetBestStringMatchValue(target, item))
+
+  maxRatio = max(ratioMatch)
+  matchIndexList = [i for i, j in enumerate(ratioMatch) if j == maxRatio]
+
+  bestMatchList = []
+  for index in matchIndexList:
+    bestMatchList.append(matchList[index])
+  return bestMatchList
+
+############################################################################
 # GetBestStringMatchValue
 ############################################################################
 def GetBestStringMatchValue(string1, string2):

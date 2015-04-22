@@ -216,14 +216,12 @@ class RenamerDB:
   # AddIgnoredDir
   #################################################
   def AddIgnoredDir(self, ignoredDir):
-    print(ignoredDir)
     match = None
     dbCursor = self._GetCursor()
     try:
       dbCursor.execute("CREATE TABLE ignored_dirs (name text)")
     except sqlite3.OperationalError:
       ignoredDirList = self.GetIgnoredDirs()
-      print("ignoredDirList = {0}".format(ignoredDirList))
       if ignoredDirList is not None:
         for item in ignoredDirList:
           if item == ignoredDir:
@@ -246,26 +244,5 @@ class RenamerDB:
       dbCursor.execute("DROP TABLE {0}".format(tableName))
     except sqlite3.OperationalError:
       pass
-
-  #################################################
-  # Test
-  #################################################
-  def Test(self):
-    #print(self.CheckShowNameTable('TopGearUK02'))
-    self.AddShowNameEntry('TopGearUK02', 'Top Gear (UK : 2002)', 6549)
-    #self.AddShowNameEntry('TopGearUK02', 'Top Gear (US)', 7921)
-    print(self.CheckShowNameTable('TopGearUK02'))
-    self._SaveAndClose()
-
-############################################################################
-# main
-############################################################################
-def main():
-  db = RenamerDB('example.test')
-  db.Test()
-
-############################################################################
-# default process if run as standalone
-############################################################################
-if __name__ == "__main__":
-  main()
+    else:
+      self._CommitChanges()

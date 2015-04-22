@@ -43,6 +43,10 @@ class TVFile:
       return(False)
     else:
       (self.seasonNum, self.episodeNum) = match.pop()
+      if len(self.seasonNum) == 1:
+        self.seasonNum = "0{0}".format(self.seasonNum)
+      if len(self.episodeNum) == 1:
+        self.episodeNum = "0{0}".format(self.episodeNum)
       self.fileShowName = re.findall("(.+?)[_.-?]S[0-9]+E[0-9]+", self.origFileName)[0]
       return(True)
 
@@ -62,23 +66,20 @@ class TVFile:
       self.newFilePath = os.path.join(fileDir, newFileName)
 
   ############################################################################
-  # Convert2String
+  # Print
   ############################################################################
-  def Convert2String(self):
-    c2s = "TV File details are:" \
-                + "\n  Original File Path      = {0}".format(self.origFilePath)
-
-    # Display show name from guide (preferred) or file if present
+  def Print(self):
+    logzila.Log.Info("TVFILE", "TV File details are:")
+    logzila.Log.IncreaseIndent()
+    logzila.Log.Info("TVFILE", "Original File Path      = {0}".format(self.origFilePath))
     if self.guideShowName is not None:
-      c2s = c2s + "\n  Show Name (from guide)  = {0}".format(self.guideShowName)
+      logzila.Log.Info("TVFILE", "Show Name (from guide)  = {0}".format(self.guideShowName))
     elif self.fileShowName is not None:
-      c2s = c2s + "\n  Show Name (from file)   = {0}".format(self.fileShowName)
-
+      logzila.Log.Info("TVFILE", "Show Name (from file)   = {0}".format(self.fileShowName))
     if self.seasonNum is not None and self.episodeNum is not None:
-      c2s = c2s + "\n  Season & Episode        = S{0}E{1}".format(self.seasonNum, self.episodeNum)
+      logzila.Log.Info("TVFILE", "Season & Episode        = S{0}E{1}".format(self.seasonNum, self.episodeNum))
     if self.episodeName is not None:
-      c2s = c2s + "\n  Episode Name:           = {0}".format(self.episodeName)
+      logzila.Log.Info("TVFILE", "Episode Name:           = {0}".format(self.episodeName))
     if self.newFilePath is not None:
-      c2s = c2s + "\n  New File Path           = {0}".format(self.newFilePath)
-    return(c2s)
-
+      logzila.Log.Info("TVFILE", "New File Path           = {0}".format(self.newFilePath))
+    logzila.Log.DecreaseIndent()

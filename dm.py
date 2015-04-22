@@ -1,5 +1,7 @@
 ''' DOWNLOAD MANAGER '''
 # Python default package imports
+import os
+import sys
 
 # Custom Python package imports
 
@@ -19,7 +21,7 @@ class DownloadManager:
   def __init__(self, dbPath):
     self._db = database.RenamerDB(dbPath)
     self._downloadDir = None
-    self._targetDir = None
+    self._tvDir = None
     self._supportedFormatsList = []
     self._ignoredDirsList = []
 
@@ -79,7 +81,7 @@ class DownloadManager:
             formatList.append(response)
       formatList = set(formatList)
       for fileFormat in formatList:
-        db.AddSupportedFormat(fileFormat)
+        self._db.AddSupportedFormat(fileFormat)
     logzila.Log.Info("DM", "Using supported formats: {0}".format(formatList))
     logzila.Log.DecreaseIndent()
     return formatList
@@ -113,7 +115,7 @@ class DownloadManager:
             ignoredDirs.append(response)
       #ignoredDirs = set(ignoredDirs)
       for ignoredDir in ignoredDirs:
-        db.AddIgnoredDir(ignoredDir)
+        self._db.AddIgnoredDir(ignoredDir)
     logzila.Log.Info("DM", "Using supported formats: {0}".format(ignoredDirs))
     logzila.Log.DecreaseIndent()
     return ignoredDirs
@@ -129,24 +131,23 @@ class DownloadManager:
     # DOWNLOAD DIRECTORY
     self._downloadDir = self._GetConfigDir('DOWNLOAD_DIR', 'download directory')
 
-    # TARGET DIRECTORY
-    self._targetDir = self._GetConfigDir('TARGET_DIR', 'target directory')
-
-    #self._db.DropTable('supported_formats')
+    # TV DIRECTORY
+    self._tvDir = self._GetConfigDir('TV_DIR', 'tv directory')
 
     # SUPPORTED FILE FORMATS
     self._supportedFormatsList = self._GetSupportedFormats()
 
-    #self._db.DropTable('ignored_dirs')
-
     # IGNORED DIRECTORIES
     self._ignoredDirsList = self._GetIgnoredDirs()
 
+    logzila.Log.NewLine()
+    logzila.Log.Info("DM", "Configuation is:")
+    logzila.Log.IncreaseIndent()
     logzila.Log.Info("DM", "Download directory = {0}".format(self._downloadDir))
-    logzila.Log.Info("DM", "Target directory = {0}".format(self._targetDir))
+    logzila.Log.Info("DM", "TV directory = {0}".format(self._tvDir))
     logzila.Log.Info("DM", "Supported formats = {0}".format(self._supportedFormatsList))
     logzila.Log.Info("DM", "Ignored directory list = {0}".format(self._ignoredDirsList))
-    logzila.Log.DecreaseIndent()
+    logzila.Log.ResetIndent()
 
   ############################################################################
   # ProcessDownloadFolder
@@ -159,7 +160,7 @@ class DownloadManager:
     self._GetDatabaseConfig()
     logzila.Log.Seperator()
     util.GetSupportedFilesInDir(self._downloadDir, tvFileList, self._supportedFormatsList, self._ignoredDirsList)
-    tvRenamer = renamer.TVRenamer(self._db, tvFileList, 'EPGUIDES', self._targetDir)
+    tvRenamer = renamer.TVRenamer(self._db, tvFileList, 'EPGUIDES', self._tvDir)
     tvRenamer.Run()
 
 
