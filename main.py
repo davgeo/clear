@@ -1,22 +1,6 @@
 #!/usr/bin/env python3
 
-'''
-TODO:
-* TV & Movie File Renamer
-* Folder organisation
-* Check for new programs
-
-This program should:
-DOWNLOAD FOLDER
-* Find TV shows in download folder
-* Match against appropriate TV show in DB
-* Rename with current episode names
-* Move to TV folder
-
-TV LIBRARY
-* Check for missing episodes (new or old)
-*
-'''
+''' MAIN '''
 # Python default package imports
 import sys
 import os
@@ -27,7 +11,7 @@ import dm
 import logzila
 
 # Variables
-DATABASE_PATH = 'dm.db'
+DATABASE_PATH = 'test.db'
 
 ############################################################################
 # ProcessArguments
@@ -36,13 +20,18 @@ def ProcessArguments():
   parser = argparse.ArgumentParser()
   parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
   parser.add_argument('--reset', help='resets database', action="store_true")
+  parser.add_argument('--live', help='resets database', action="store_true")
   args = parser.parse_args()
+
+  if args.live:
+    global DATABASE_PATH
+    DATABASE_PATH = 'live.db'
 
   if args.tags:
     logzila.Log.tagsEnabled = 1;
 
   if args.reset:
-    logzila.Log.Info("MAIN", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE")
+    logzila.Log.Info("MAIN", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE {0}".format(DATABASE_PATH))
     response = logzila.Log.Input("MAIN", "Are you sure you want to proceed [y/n]? ")
     if response.lower() == 'y':
       if(os.path.isfile(DATABASE_PATH)):
@@ -55,6 +44,7 @@ def ProcessArguments():
 ############################################################################
 def main():
   ProcessArguments()
+  print(DATABASE_PATH)
   prog = dm.DownloadManager(DATABASE_PATH)
   prog.ProcessDownloadFolder()
 

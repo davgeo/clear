@@ -1,8 +1,9 @@
 ''' RENAMER '''
 # Python default package imports
 import shutil
-
-# Custom Python package imports
+import os
+import re
+import errno
 
 # Local file imports
 import epguides
@@ -80,17 +81,66 @@ class TVRenamer:
       return self._GetGuideShowName(showName, origStringSearch)
 
   ############################################################################
-  # _RenameFile
-  # Renames file
+  # _MoveFileToTVLibrary
+  # If file already exists at dest - rename inplace
+  # Else if file on same file system and doesn't exist - rename
+  # Else if src/dst on different file systems
+  #    - rename in-place
+  #    - copy to dest (if forceCopy is True)
+  #    - move orig to PROCESSED
   ############################################################################
-  def _RenameFile(self, tvFile):
-    processedDir = 'PROCESSED'
-    if tvFile.newFilePath is not None:
-      logzila.Log.Info("RENAMER", "Copying {0} to {1}".format(tvFile.origFilePath, tvFile.newFilePath))
-      # shutil copy
+  def _MoveFileToLibrary(self, oldPath, newPath, forceCopy = False):
+    logzila.Log.Info("RENAMER", "Attempting to add file to TV library (from {0} to {1})".format(oldPath, newPath))
 
-      logzila.Log.Info("RENAMER", "Moving original file {0} to processed dir {1}\n".format(tvFile.origFilePath, processedDir))
-      #shutil.move(tvFile.origFilePath, tvFile.newFilePath)
+    if os.path.exists(newPath):
+      logzila.Log.Info("RENAMER", "File skipped - file aleady exists in TV library at {0}".format(newPath))
+    else:
+      newDir = os.path.dirname(newPath)
+      os.makedirs(newDir, exist_ok=True)
+
+      try:
+        os.rename(oldPath, newPath)
+      except OSError as ex:
+        if ex.errno is errno.EXDEV:
+          logzila.Log.Info("RENAMER", "Simple rename failed - source and destination exist on different file systems")
+          logzila.Log.Info("RENAMER", "Renaming file in-place")
+          newFileName = os.path.basename(newPath)
+          origFileDir = os.path.dirname(oldPath)
+          renameFilePath = os.path.join(origFileDir, newFileName)
+          renameFilePath = util.CheckPathExists(renameFilePath)
+          logzila.Log.Info("RENAMER", "Renaming from {0} to {1}".format(oldPath, renameFilePath))
+
+          try:
+            os.rename(oldPath, renameFilePath)
+          except Exception as ex2:
+            logzila.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex2.args[0], ex2.args[1]))
+          else:
+            if forceCopy is True:
+              logzila.Log.Info("RENAMER", "Copying file to new file system {0} to {1}".format(renameFilePath, newPath))
+
+              try:
+                shutil.copy2(renameFilePath, newPath)
+              except shutil.Error as ex3:
+                err = ex3.args[0]
+                logzila.Log.Info("RENAMER", "File copy failed - Shutil Error: {0}".format(err))
+              else:
+                logzila.Log.Info("RENAMER", "Moving original file to PROCESSED directory")
+                processedDir = os.path.join(origFileDir, 'PROCESSED')
+                os.makedirs(processedDir, exist_ok=True)
+
+                try:
+                  shutil.move(renameFilePath, processedDir)
+                except shutil.Error as ex4:
+                  err = ex4.args[0]
+                  logzila.Log.Info("RENAMER", "Move to PROCESSED directory failed - Shutil Error: {0}".format(err))
+            else:
+              logzila.Log.Info("RENAMER", "File copy skipped - copying between file systems is disabled (enabling this functionality is slow)")
+        else:
+          logzila.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
+      except Exception as ex:
+        logzila.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
+      else:
+        logzila.Log.Info("RENAMER", "File renamed from {0} to {1}".format(oldPath, newPath))
 
   ############################################################################
   # _AddFileToLibrary
@@ -98,29 +148,42 @@ class TVRenamer:
   ############################################################################
   def _AddFileToLibrary(self, tvFile):
     # Look up base show name directory in database
-    showDir = self._db.GetLibraryDirectory()
+    logzila.Log.Info("RENAMER", "Looking up library directory in database for show: {0}".format(tvFile.guideShowName))
+    showDir = self._db.GetLibraryDirectory(tvFile.guideShowName)
 
-    # Parse TV dir for best match
-    libraryDir = self._tvDir # possibly db lookup here instead of in dm.py
-    dirList = os.path.listdir(libraryDir)
-    while showDir is None:
-      matchDirList = util.GetBestMatch(tvFile.guideShowName, dirList)
+    if showDir is None:
+      logzila.Log.Info("RENAMER", "No database match found - look for best match in library directory: {0}".format(self._tvDir))
+      # Parse TV dir for best match
+      libraryDir = self._tvDir # TODO: possibly db lookup here instead of in dm.py
+      dirList = os.listdir(libraryDir)
+      while showDir is None:
+        matchDirList = util.GetBestMatch(tvFile.guideShowName, dirList)
 
-      # User input to accept or add alternate
-      response = util.UserAcceptance(matchDirList)
+        # User input to accept or add alternate
+        response = util.UserAcceptance(matchDirList)
 
-      if response in matchDirList:
-        showDir = response
-      elif response is None:
-        return None
+        if response in matchDirList:
+          showDir = response
+        elif response is None:
+          stripedDir = util.StripSpecialCharacters(tvFile.guideShowName)
+          response = logzila.Log.Input('UTIL', "Enter 'y' to accept this directory, 'x' to skip this show or enter a new directory to use: ")
+          if response.lower() == 'x':
+            return None
+          elif response.lower() == 'y':
+            showDir = stripedDir
+          else:
+            showDir = response
 
-    # Generate file directory path
-    #showDir = re.sub('[!@#$%^&*(){};:,./<>?\|`~=_+]', '', self.guideShowName)
-    #showDir = re.sub('\s\s+', ' ', showDir)
-    #fileDir = os.path.join(fileDir, showDir, "Season {0}".format(self.seasonNum))
+      self._db.AddLibraryDirectory(tvFile.guideShowName, showDir)
+
+    # Add based directory and season directory
+    showDir = os.path.join(self._tvDir, showDir, "Season {0}".format(tvFile.seasonNum))
+
     # Call tvFile function to generate file name
+    tvFile.GenerateNewFilePath(showDir)
 
     # Rename file
+    self._MoveFileToLibrary(tvFile.origFilePath, tvFile.newFilePath)
 
   # *** EXTERNAL CLASSES *** #
   ############################################################################
@@ -149,11 +212,7 @@ class TVRenamer:
         if tvFile.episodeName is None:
           skippedFileList.append(tvFile)
         else:
-          tvFile.GenerateNewFilePath(self._tvDir)
-          if tvFile.newFilePath is None:
-            skippedFileList.append(tvFile)
-          else:
-            activeFileList.append(tvFile)
+          activeFileList.append(tvFile)
       else:
         skippedFileList.append(tvFile)
 
@@ -161,7 +220,8 @@ class TVRenamer:
     logzila.Log.Info("RENAMER", "Renaming files:\n")
     for tvFile in activeFileList:
       tvFile.Print()
-      self._RenameFile(tvFile)
+      self._AddFileToLibrary(tvFile)
+      logzila.Log.NewLine()
 
     logzila.Log.Seperator()
     logzila.Log.Info("RENAMER", "Skipped files:")

@@ -6,8 +6,6 @@ import csv
 import datetime
 import xml.etree.ElementTree as etree
 
-# Custom Python package imports
-
 # Local file imports
 import util
 import logzila

@@ -5,10 +5,36 @@ import difflib
 import requests
 import glob
 import os
+import re
 
 # Local file imports
 import tvfile
 import logzila
+
+############################################################################
+# CheckPathExists
+#
+############################################################################
+def CheckPathExists(path):
+  i = 0
+  origPath = path
+  while os.path.exists(path):
+    i = i + 1
+    logzila.Log.Info("TEST", "Path {0} already exists".format(path))
+    path = "{0}_{1}".format(origPath, i)
+  return path
+
+############################################################################
+# StripSpecialCharacters
+#
+############################################################################
+def StripSpecialCharacters(string):
+  logzila.Log.Info("UTIL", "Stripping any special characters from {0}".format(string))
+  string = re.sub('[&]', 'and', string)
+  string = re.sub('[@#$%^&*{};:,/<>?\|`~=+]', '', string)
+  string = re.sub('\s\s+', ' ', string)
+  logzila.Log.Info("UTIL", "New string is: {0}".format(string))
+  return string
 
 ############################################################################
 # UserAcceptance
@@ -27,7 +53,7 @@ def UserAcceptance(matchList):
     prompt = "E"
 
   prompt = prompt + "nter a different string to look up or " \
-         + "enter 'x' to skip this show: "
+         + "enter 'x' to skip this selection: "
 
   response = logzila.Log.Input('UTIL', prompt)
 
@@ -45,16 +71,17 @@ def UserAcceptance(matchList):
 # GetBestMatch
 ############################################################################
 def GetBestMatch(target, matchList):
-  ratioMatch = []
-  for item in matchList:
-    ratioMatch.append(GetBestStringMatchValue(target, item))
-
-  maxRatio = max(ratioMatch)
-  matchIndexList = [i for i, j in enumerate(ratioMatch) if j == maxRatio]
-
   bestMatchList = []
-  for index in matchIndexList:
-    bestMatchList.append(matchList[index])
+  if len(matchList) > 0:
+    ratioMatch = []
+    for item in matchList:
+      ratioMatch.append(GetBestStringMatchValue(target, item))
+
+    maxRatio = max(ratioMatch)
+    matchIndexList = [i for i, j in enumerate(ratioMatch) if j == maxRatio]
+
+    for index in matchIndexList:
+      bestMatchList.append(matchList[index])
   return bestMatchList
 
 ############################################################################
@@ -128,7 +155,7 @@ def GetSupportedFilesInDir(fileDir, fileList, supportedFormatList, ignoreDirList
         else:
           GetSupportedFilesInDir(globPath, fileList, supportedFormatList, ignoreDirList)
       else:
-        logzila.Log.Info("UTIL", "Ignoring unsupported file or folder: {0}".format(item))
+        logzila.Log.Info("UTIL", "Ignoring unsupported file or folder: {0}".format(globPath))
   else:
     logzila.Log.Info("UTIL", "Invalid non-directory path given to parse")
 

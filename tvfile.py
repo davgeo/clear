@@ -5,6 +5,7 @@ import re
 
 # Local file imports
 import logzila
+import util
 
 #################################################
 # TVFile
@@ -23,6 +24,7 @@ class TVFile:
     self.episodeNum = None
     self.episodeName = None
     self.guideShowName = None
+    self.newFileName = None
     self.newFilePath = None
 
   ############################################################################
@@ -51,19 +53,28 @@ class TVFile:
       return(True)
 
   ############################################################################
+  # GenerateNewFileName
+  # Create new file name from show name, season number, episode number
+  # and episode name.
+  ############################################################################
+  def GenerateNewFileName(self):
+    if self.guideShowName is not None and self.seasonNum is not None and \
+       self.episodeNum is not None and self.episodeName is not None:
+      newFileName = "{0}.S{1}E{2}.{3}{4}".format(self.guideShowName, self.seasonNum, \
+                                            self.episodeNum, self.episodeName, self.ext)
+      self.newFileName = util.StripSpecialCharacters(newFileName)
+
+  ############################################################################
   # GenerateNewFilePath
-  # Create new file path from show name, season number, episode number
-  # and episode name. If a fileDir is provided it will also be used otherwise
+  # Create new file path. If a fileDir is provided it will be used otherwise
   # the original file path is used.
   ############################################################################
   def GenerateNewFilePath(self, fileDir = None):
-    if self.guideShowName is not None and self.seasonNum is not None and \
-       self.episodeNum is not None and self.episodeName is not None:
+    self.GenerateNewFileName()
+    if self.newFileName is not None:
       if fileDir is None:
         fileDir = self.fileDir
-      newFileName = "{0}.S{1}E{2}.{3}{4}".format(self.guideShowName, self.seasonNum, \
-                                            self.episodeNum, self.episodeName, self.ext)
-      self.newFilePath = os.path.join(fileDir, newFileName)
+      self.newFilePath = os.path.join(fileDir, self.newFileName)
 
   ############################################################################
   # Print

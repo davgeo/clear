@@ -2,8 +2,6 @@
 # Python default package imports
 import sqlite3
 
-# Custom Python package imports
-
 # Local file imports
 import logzila
 
@@ -138,8 +136,8 @@ class RenamerDB:
         return None
       else:
         value = value[0]
-      logzila.Log.Info("DB", "Found database match in config table {0}={1}".format(fieldName, value))
-      return value
+        logzila.Log.Info("DB", "Found database match in config table {0}={1}".format(fieldName, value))
+        return value
 
   #################################################
   # SetConfigValue
@@ -232,6 +230,44 @@ class RenamerDB:
       dbCursor.execute("INSERT INTO ignored_dirs VALUES (?)", (ignoredDir, ))
     else:
       logzila.Log.Info("DB", "{0} already exists in ignored directories table".format(ignoredDir))
+    self._CommitChanges()
+
+  #################################################
+  # GetLibraryDirectory
+  #################################################
+  def GetLibraryDirectory(self, showName):
+    dbCursor = self._GetCursor()
+    try:
+      dbCursor.execute("SELECT showDir FROM tv_library WHERE showName=?", (showName, ))
+    except sqlite3.OperationalError:
+      return None
+    else:
+      value = dbCursor.fetchone()
+      if value is None:
+        return None
+      else:
+        value = value[0]
+        logzila.Log.Info("DB", "Found database match in library table {0}={1}".format(showName, value))
+        return value
+
+  #################################################
+  # AddLibraryDirectory
+  #################################################
+  def AddLibraryDirectory(self, showName, showDir):
+    dbCursor = self._GetCursor()
+    try:
+      dbCursor.execute("CREATE TABLE tv_library (showName text, showDir text)")
+    except sqlite3.OperationalError:
+      currentEntry = self.GetLibraryDirectory(showName)
+    else:
+      currentEntry = None
+
+    if currentEntry is None:
+      logzila.Log.Info("DB", "Adding {0}={1} to database library table".format(showName, showDir))
+      dbCursor.execute("INSERT INTO tv_library VALUES (?,?)", (showName, showDir))
+    else:
+      logzila.Log.Info("DB", "Updating {0} in database library table from {1} to {2}".format(showName, currentEntry, showDir))
+      dbCursor.execute("UPDATE tv_library SET showDir=? WHERE showName=?", (showDir, showName))
     self._CommitChanges()
 
   #################################################

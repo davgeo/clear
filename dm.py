@@ -3,8 +3,6 @@
 import os
 import sys
 
-# Custom Python package imports
-
 # Local file imports
 import renamer
 import database
@@ -113,7 +111,7 @@ class DownloadManager:
         else:
           if response is not None:
             ignoredDirs.append(response)
-      #ignoredDirs = set(ignoredDirs)
+
       for ignoredDir in ignoredDirs:
         self._db.AddIgnoredDir(ignoredDir)
     logzila.Log.Info("DM", "Using supported formats: {0}".format(ignoredDirs))
