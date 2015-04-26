@@ -2,10 +2,12 @@
 
 # Python default package imports
 import difflib
-import requests
 import glob
 import os
 import re
+
+# Python custom package imports
+import requests
 
 # Local file imports
 import tvfile

@@ -197,7 +197,7 @@ class DownloadManager:
 
     tvFileList = []
     util.GetSupportedFilesInDir(self._downloadDir, tvFileList, self._supportedFormatsList, self._ignoredDirsList)
-    tvRenamer = renamer.TVRenamer(self._db, tvFileList, 'EPGUIDES', self._tvDir)
+    tvRenamer = renamer.TVRenamer(self._db, tvFileList, guideName = 'EPGUIDES', destDir = self._tvDir, forceCopy = self._crossSystemCopyEnabled)
     tvRenamer.Run()
 
 ############################################################################
