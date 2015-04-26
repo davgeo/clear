@@ -17,11 +17,11 @@ import logzila
 ############################################################################
 def CheckPathExists(path):
   i = 0
-  origPath = path
+  root, ext = os.path.splitext(path)
   while os.path.exists(path):
     i = i + 1
     logzila.Log.Info("TEST", "Path {0} already exists".format(path))
-    path = "{0}_{1}".format(origPath, i)
+    path = "{0}_{1}".format(root, i) + ext
   return path
 
 ############################################################################

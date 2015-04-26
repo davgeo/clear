@@ -19,11 +19,12 @@ class TVRenamer:
   #################################################
   # constructor
   #################################################
-  def __init__(self, db, tvFileList, guideName = epguides.EPGuidesLookup.GUIDE_NAME, destDir = None):
+  def __init__(self, db, tvFileList, guideName = epguides.EPGuidesLookup.GUIDE_NAME, destDir = None, forceCopy = False):
     self._db        = db
     self._fileList  = tvFileList
     self._tvDir = destDir
     self._SetGuide(guideName)
+    self._forceCopy = forceCopy
 
   # *** INTERNAL CLASSES *** #
   ############################################################################
@@ -89,58 +90,65 @@ class TVRenamer:
   #    - copy to dest (if forceCopy is True)
   #    - move orig to PROCESSED
   ############################################################################
-  def _MoveFileToLibrary(self, oldPath, newPath, forceCopy = False):
+  def _MoveFileToLibrary(self, oldPath, newPath):
+    if oldPath == newPath:
+      return False
+
     logzila.Log.Info("RENAMER", "Attempting to add file to TV library (from {0} to {1})".format(oldPath, newPath))
 
     if os.path.exists(newPath):
       logzila.Log.Info("RENAMER", "File skipped - file aleady exists in TV library at {0}".format(newPath))
-    else:
-      newDir = os.path.dirname(newPath)
-      os.makedirs(newDir, exist_ok=True)
+      return False
 
-      try:
-        os.rename(oldPath, newPath)
-      except OSError as ex:
-        if ex.errno is errno.EXDEV:
-          logzila.Log.Info("RENAMER", "Simple rename failed - source and destination exist on different file systems")
-          logzila.Log.Info("RENAMER", "Renaming file in-place")
-          newFileName = os.path.basename(newPath)
-          origFileDir = os.path.dirname(oldPath)
-          renameFilePath = os.path.join(origFileDir, newFileName)
+    newDir = os.path.dirname(newPath)
+    os.makedirs(newDir, exist_ok=True)
+
+    try:
+      os.rename(oldPath, newPath)
+    except OSError as ex:
+      if ex.errno is errno.EXDEV:
+        logzila.Log.Info("RENAMER", "Simple rename failed - source and destination exist on different file systems")
+        logzila.Log.Info("RENAMER", "Renaming file in-place")
+        newFileName = os.path.basename(newPath)
+        origFileDir = os.path.dirname(oldPath)
+        renameFilePath = os.path.join(origFileDir, newFileName)
+        if oldPath != renameFilePath:
           renameFilePath = util.CheckPathExists(renameFilePath)
           logzila.Log.Info("RENAMER", "Renaming from {0} to {1}".format(oldPath, renameFilePath))
+        else:
+          logzila.Log.Info("RENAMER", "File already has the correct name ({0})".format(newFileName))
 
-          try:
-            os.rename(oldPath, renameFilePath)
-          except Exception as ex2:
-            logzila.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex2.args[0], ex2.args[1]))
-          else:
-            if forceCopy is True:
-              logzila.Log.Info("RENAMER", "Copying file to new file system {0} to {1}".format(renameFilePath, newPath))
+        try:
+          os.rename(oldPath, renameFilePath)
+        except Exception as ex2:
+          logzila.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex2.args[0], ex2.args[1]))
+        else:
+          if self._forceCopy is True:
+            logzila.Log.Info("RENAMER", "Copying file to new file system {0} to {1}".format(renameFilePath, newPath))
+
+            try:
+              shutil.copy2(renameFilePath, newPath)
+            except shutil.Error as ex3:
+              err = ex3.args[0]
+              logzila.Log.Info("RENAMER", "File copy failed - Shutil Error: {0}".format(err))
+            else:
+              logzila.Log.Info("RENAMER", "Moving original file to PROCESSED directory")
+              processedDir = os.path.join(origFileDir, 'PROCESSED')
+              os.makedirs(processedDir, exist_ok=True)
 
               try:
-                shutil.copy2(renameFilePath, newPath)
-              except shutil.Error as ex3:
-                err = ex3.args[0]
-                logzila.Log.Info("RENAMER", "File copy failed - Shutil Error: {0}".format(err))
-              else:
-                logzila.Log.Info("RENAMER", "Moving original file to PROCESSED directory")
-                processedDir = os.path.join(origFileDir, 'PROCESSED')
-                os.makedirs(processedDir, exist_ok=True)
-
-                try:
-                  shutil.move(renameFilePath, processedDir)
-                except shutil.Error as ex4:
-                  err = ex4.args[0]
-                  logzila.Log.Info("RENAMER", "Move to PROCESSED directory failed - Shutil Error: {0}".format(err))
-            else:
-              logzila.Log.Info("RENAMER", "File copy skipped - copying between file systems is disabled (enabling this functionality is slow)")
-        else:
-          logzila.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
-      except Exception as ex:
-        logzila.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
+                shutil.move(renameFilePath, processedDir)
+              except shutil.Error as ex4:
+                err = ex4.args[0]
+                logzila.Log.Info("RENAMER", "Move to PROCESSED directory failed - Shutil Error: {0}".format(err))
+          else:
+            logzila.Log.Info("RENAMER", "File copy skipped - copying between file systems is disabled (enabling this functionality is slow)")
       else:
-        logzila.Log.Info("RENAMER", "File renamed from {0} to {1}".format(oldPath, newPath))
+        logzila.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
+    except Exception as ex:
+      logzila.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
+    else:
+      logzila.Log.Info("RENAMER", "File renamed from {0} to {1}".format(oldPath, newPath))
 
   ############################################################################
   # _AddFileToLibrary

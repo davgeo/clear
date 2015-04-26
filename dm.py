@@ -1,7 +1,10 @@
+#!/usr/bin/env python3
+
 ''' DOWNLOAD MANAGER '''
 # Python default package imports
 import os
 import sys
+import argparse
 
 # Local file imports
 import renamer
@@ -16,12 +19,14 @@ class DownloadManager:
   #################################################
   # constructor
   #################################################
-  def __init__(self, dbPath):
-    self._db = database.RenamerDB(dbPath)
+  def __init__(self):
+    self._db = None
     self._downloadDir = None
     self._tvDir = None
     self._supportedFormatsList = []
     self._ignoredDirsList = []
+    self._databasePath = 'test.db'
+    self._crossSystemCopyEnabled = False
 
   ############################################################################
   # _GetConfigDir
@@ -148,17 +153,65 @@ class DownloadManager:
     logzila.Log.ResetIndent()
 
   ############################################################################
-  # ProcessDownloadFolder
-  # Get all tv files in download directory
-  # Copy-rename files using TVRenamer
-  # Move old files in DL directory to PROCESSED folder
+  # GetArgs
   ############################################################################
-  def ProcessDownloadFolder(self):
-    tvFileList = []
+  def _GetArgs(self):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--live', help='run with live database', action="store_true")
+    parser.add_argument('--reset', help='resets database', action="store_true")
+    parser.add_argument('--copy', help='enable copying between file systems', action="store_true")
+    parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
+    args = parser.parse_args()
+
+    if args.live:
+      self._databasePath = 'live.db'
+
+    if args.reset:
+      logzila.Log.Info("DM", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE {0}".format(self._databasePath))
+      response = logzila.Log.Input("DM", "Are you sure you want to proceed [y/n]? ")
+      if response.lower() == 'y':
+        if(os.path.isfile(self._databasePath)):
+          os.remove(self._databasePath)
+      else:
+        sys.exit(0)
+
+    if args.copy:
+      self._crossSystemCopyEnabled = True
+
+    if args.tags:
+      logzila.Log.tagsEnabled = 1;
+
+  ############################################################################
+  # Run
+  # Get all tv files in download directory
+  # Run renamer process
+  ############################################################################
+  def Run(self):
+    self._GetArgs()
+    logzila.Log.Info("DM", "Using database: {0}".format(self._databasePath))
+    self._db = database.RenamerDB(self._databasePath)
+
     self._GetDatabaseConfig()
+
     logzila.Log.Seperator()
+
+    tvFileList = []
     util.GetSupportedFilesInDir(self._downloadDir, tvFileList, self._supportedFormatsList, self._ignoredDirsList)
     tvRenamer = renamer.TVRenamer(self._db, tvFileList, 'EPGUIDES', self._tvDir)
     tvRenamer.Run()
 
+############################################################################
+# main
+############################################################################
+def main():
+  prog = DownloadManager()
+  prog.Run()
 
+############################################################################
+# default process if run as standalone
+############################################################################
+if __name__ == "__main__":
+  if sys.version_info < (3,4):
+    sys.stdout.write("[DM] Incompatible Python version detected - Python 3.4 or greater is required.\n")
+  else:
+    main()
