@@ -17,7 +17,6 @@ class EPGuidesLookup:
   GUIDE_NAME = 'EPGUIDES'
   ALLSHOW_IDLIST_URL = 'http://epguides.com/common/allshows.txt'
   EPISODE_LOOKUP_URL = 'http://epguides.com/common/exportToCSV.asp'
-  SAVE_DIR = 'test_dir'
 
   #################################################
   # constructor
@@ -27,6 +26,7 @@ class EPGuidesLookup:
     self._showInfoDict = {}
     self._showTitleList = None
     self._showIDList = None
+    self._saveDir = os.getcwd()
 
   # *** INTERNAL CLASSES *** #
   ############################################################################
@@ -41,7 +41,7 @@ class EPGuidesLookup:
 
     today = datetime.date.today().strftime("%Y%m%d")
     saveFile = '_epguides_' + today + '.csv'
-    saveFilePath = os.path.join(self.SAVE_DIR, saveFile)
+    saveFilePath = os.path.join(self._saveDir, saveFile)
     if os.path.exists(saveFilePath):
       # Load data previous saved to file
       with open(saveFilePath, 'r') as allShowsFile:
@@ -57,7 +57,7 @@ class EPGuidesLookup:
 
       # Delete old copies of this file
       globPattern = '_epguides_????????.csv'
-      globFilePath = os.path.join(self.SAVE_DIR, globPattern)
+      globFilePath = os.path.join(self._saveDir, globPattern)
       for filePath in glob.glob(globFilePath):
         if filePath != saveFilePath:
           logzila.Log.Info("EPGUIDE", "Removing old EPGUIDES file: {0}".format(filePath))

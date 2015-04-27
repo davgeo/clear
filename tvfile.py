@@ -34,7 +34,7 @@ class TVFile:
   # All information preceeding this is used as the show name
   ############################################################################
   def GetShowDetails(self):
-    match = re.findall("S([0-9]+)E([0-9]+)", self.origFileName)
+    match = re.findall("[sS]([0-9]+)[eE]([0-9]+)", self.origFileName)
     match = set(match) # Eliminate any duplicate matches
 
     if len(match) != 1:
@@ -49,7 +49,7 @@ class TVFile:
         self.seasonNum = "0{0}".format(self.seasonNum)
       if len(self.episodeNum) == 1:
         self.episodeNum = "0{0}".format(self.episodeNum)
-      self.fileShowName = re.findall("(.+?)[_.-?]S[0-9]+E[0-9]+", self.origFileName)[0]
+      self.fileShowName = re.findall("(.+?)[_.-?][sS][0-9]+[eE][0-9]+", self.origFileName)[0]
       return(True)
 
   ############################################################################
