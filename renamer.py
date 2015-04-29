@@ -151,6 +151,50 @@ class TVRenamer:
       logzila.Log.Info("RENAMER", "File renamed from {0} to {1}".format(oldPath, newPath))
 
   ############################################################################
+  # _LookUpSeasonDirectory
+  ############################################################################
+  def _LookUpSeasonDirectory(self, showDir, seasonNum):
+    logzila.Log.Info("RENAMER", "Looking up season directory (Season {0}) in {1}".format(seasonNum, showDir))
+
+    #TODO: Add database lookup
+
+    matchDirList = []
+    if os.path.isdir(showDir):
+      for dirName in os.listdir(showDir):
+        subDir = os.path.join(showDir, dirName)
+        if os.path.isdir(subDir):
+          seasonResult = re.findall("Season", dirName)
+          if len(seasonResult) > 0:
+            numResult = re.findall("[0-9]+", dirName)
+            numResult = set(numResult)
+            if len(numResult) == 1:
+              if int(numResult.pop()) == int(seasonNum):
+                matchDirList.append(dirName)
+
+    # User input to accept or add alternate
+    response = util.UserAcceptance(matchDirList, recursiveLookup = False)
+
+    if response in matchDirList:
+      seasonDirName = response
+    elif response is None:
+      seasonDirName = "Season {0}".format(seasonNum)
+      logzila.Log.Info("RENAMER", "Generated directory name: '{0}'".format(seasonDirName))
+      response = logzila.Log.Input("RENAMER", "Enter 'y' to accept this directory, 'x' to use base show directory or enter a new directory name to use: ")
+      if response.lower() == 'x':
+        seasonDirName = None
+      elif response.lower() == 'y':
+        pass
+      else:
+        seasonDirName = response
+
+    # TODO: Add seasonDirName to Database
+
+    if seasonDirName is not None:
+      showDir = os.path.join(showDir, seasonDirName)
+
+    return showDir
+
+  ############################################################################
   # _AddFileToLibrary
   #
   ############################################################################
@@ -174,7 +218,7 @@ class TVRenamer:
           showDir = response
         elif response is None:
           stripedDir = util.StripSpecialCharacters(tvFile.guideShowName)
-          response = logzila.Log.Input('UTIL', "Enter 'y' to accept this directory, 'x' to skip this show or enter a new directory to use: ")
+          response = logzila.Log.Input('RENAMER', "Enter 'y' to accept this directory, 'x' to skip this show or enter a new directory to use: ")
           if response.lower() == 'x':
             return None
           elif response.lower() == 'y':
@@ -184,8 +228,11 @@ class TVRenamer:
 
       self._db.AddLibraryDirectory(tvFile.guideShowName, showDir)
 
-    # Add based directory and season directory
-    showDir = os.path.join(self._tvDir, showDir, "Season {0}".format(tvFile.seasonNum))
+    # Add base directory to show path
+    showDir = os.path.join(self._tvDir, showDir)
+
+    # Lookup and add season directory to show path
+    showDir = self._LookUpSeasonDirectory(showDir, tvFile.seasonNum)
 
     # Call tvFile function to generate file name
     tvFile.GenerateNewFilePath(showDir)

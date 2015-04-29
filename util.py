@@ -41,7 +41,7 @@ def StripSpecialCharacters(string):
 ############################################################################
 # UserAcceptance
 ############################################################################
-def UserAcceptance(matchList):
+def UserAcceptance(matchList, recursiveLookup = True):
   matchString = ', '.join(matchList)
 
   if len(matchList) == 1:
@@ -50,24 +50,31 @@ def UserAcceptance(matchList):
   elif len(matchList) > 1:
     logzila.Log.Info("UTIL", "Multiple possible matches found: {0}".format(matchString))
     prompt = "Enter correct match from list or e"
+    option = 2
   else:
     logzila.Log.Info("UTIL", "No match found")
     prompt = "E"
+    if not recursiveLookup:
+      return None
 
-  prompt = prompt + "nter a different string to look up or " \
-         + "enter 'x' to skip this selection: "
+  if recursiveLookup:
+    prompt = prompt + "nter a different string to look up or e"
 
-  response = logzila.Log.Input('UTIL', prompt)
+  prompt = prompt + "nter 'x' to skip this selection: "
 
-  if response.lower() == 'x':
-    return None
-  elif response.lower() == 'y' and len(matchList) == 1:
-    return matchList[0]
-  elif len(matchList) > 1:
-    for match in matchList:
-      if response.lower() == match.lower():
-        return match
-  return response
+  while(1):
+    response = logzila.Log.Input('UTIL', prompt)
+
+    if response.lower() == 'x':
+      return None
+    elif response.lower() == 'y' and len(matchList) == 1:
+      return matchList[0]
+    elif len(matchList) > 1:
+      for match in matchList:
+        if response.lower() == match.lower():
+          return match
+    if recursiveLookup:
+      return response
 
 ############################################################################
 # GetBestMatch
