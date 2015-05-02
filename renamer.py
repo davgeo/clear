@@ -71,14 +71,15 @@ class TVRenamer:
 
     showName = util.UserAcceptance(showNameList)
 
-    logzila.Log.DecreaseIndent()
-
     if showName in showNameList:
       self._db.AddShowName(self._guide.GUIDE_NAME, origStringSearch, showName)
+      logzila.Log.DecreaseIndent()
       return showName
     elif showName is None:
+      logzila.Log.DecreaseIndent()
       return None
     else:
+      logzila.Log.DecreaseIndent()
       return self._GetGuideShowName(showName, origStringSearch)
 
   ############################################################################

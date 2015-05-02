@@ -49,9 +49,13 @@ class DownloadManager:
           self._db.SetConfigValue(configKey, configValue)
         else:
           logzila.Log.Info("DM", "{0} is not recognised as a directory".format(response))
-    logzila.Log.Info("DM", "Using {0} {1}".format(strDescriptor, configValue))
-    logzila.Log.DecreaseIndent()
-    return configValue
+    elif os.path.isdir(configValue):
+      logzila.Log.Info("DM", "Using {0} {1}".format(strDescriptor, configValue))
+      logzila.Log.DecreaseIndent()
+      return configValue
+    else:
+      logzila.Log.Info("DM", "Exiting... {0} is not recognised as a directory".format(configValue))
+      sys.exit(0)
 
   ############################################################################
   # _GetSupportedFormats
@@ -116,10 +120,10 @@ class DownloadManager:
         else:
           if response is not None:
             ignoredDirs.append(response)
-
+      ignoredDirs = set(ignoredDirs)
       for ignoredDir in ignoredDirs:
         self._db.AddIgnoredDir(ignoredDir)
-    logzila.Log.Info("DM", "Using supported formats: {0}".format(ignoredDirs))
+    logzila.Log.Info("DM", "Using ignored directories: {0}".format(ignoredDirs))
     logzila.Log.DecreaseIndent()
     return ignoredDirs
 
@@ -132,10 +136,10 @@ class DownloadManager:
     logzila.Log.IncreaseIndent()
 
     # DOWNLOAD DIRECTORY
-    self._downloadDir = self._GetConfigDir('DOWNLOAD_DIR', 'download directory')
+    self._downloadDir = self._GetConfigDir('DownloadDir', 'download directory')
 
     # TV DIRECTORY
-    self._tvDir = self._GetConfigDir('TV_DIR', 'tv directory')
+    self._tvDir = self._GetConfigDir('TVDir', 'tv directory')
 
     # SUPPORTED FILE FORMATS
     self._supportedFormatsList = self._GetSupportedFormats()

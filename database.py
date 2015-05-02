@@ -13,32 +13,148 @@ class RenamerDB:
   # constructor
   #################################################
   def __init__(self, dbPath):
-    self._dbConnection = sqlite3.connect(dbPath)
+    self._db = sqlite3.connect(dbPath)
 
   #################################################
-  # _GetCursor
+  # _QueryDatabase
   #################################################
-  def _GetCursor(self):
-    return self._dbConnection.cursor()
-
-  #################################################
-  # _CommitChanges
-  #################################################
-  def _CommitChanges(self):
-    self._dbConnection.commit()
-
-  #################################################
-  # _Close
-  #################################################
-  def _Close(self):
-    self._dbConnection.close()
+  def _QueryDatabase(self, query, tuples = None, commit = True, error = True):
+    logzila.Log.Info("DB", "Database Query: {0} {1}".format(query, tuples))
+    try:
+      if tuples is None:
+        result = self._db.execute(query)
+      else:
+        result = self._db.execute(query, tuples)
+    except sqlite3.OperationalError:
+      if error is True:
+        raise
+      return None
+    else:
+      if commit is True:
+        self._db.commit()
+      return result.fetchall()
 
   #################################################
   # _SaveAndClose
   #################################################
-  def _SaveAndClose(self):
-    self._CommitChanges()
-    self._Close()
+  def _Close(self):
+    self._db.close()
+
+  #################################################
+  # DropTable
+  #################################################
+  def DropTable(self, tableName):
+    logzila.Log.Info("DB", "Deleting table {0}".format(tableName))
+    self._QueryDatabase("DROP TABLE {0}".format(tableName))
+
+  #################################################
+  # SetConfigValue
+  #################################################
+  def SetConfigValue(self, fieldName, value):
+    tableExists = self._QueryDatabase("CREATE TABLE Config (Name text, Value text)", error = False)
+
+    if tableExists is None:
+      currentConfigValue = self.GetConfigValue(fieldName)
+    else:
+      currentConfigValue = None
+
+    if currentConfigValue is None:
+      logzila.Log.Info("DB", "Adding {0}={1} to database config table".format(fieldName, value))
+      self._QueryDatabase("INSERT INTO Config VALUES (?,?)", (fieldName, value))
+    else:
+      logzila.Log.Info("DB", "Updating {0} in database config table from {1} to {2}".format(fieldName, currentEntry, value))
+      self._QueryDatabase("UPDATE Config SET Value=?, WHERE Name=?", (value, fieldName))
+
+  #################################################
+  # GetConfigValue
+  #################################################
+  def GetConfigValue(self, fieldName):
+    result = self._QueryDatabase("SELECT Value FROM Config WHERE Name=?", (fieldName, ), error = False)
+
+    if result is None:
+      return None
+    elif len(result) == 0:
+      return None
+    elif len(result) == 1:
+      logzila.Log.Info("DB", "Found database match in config table {0}={1}".format(fieldName, result[0][0]))
+      return result[0][0]
+    elif len(result) > 1:
+      logzila.Log.Info("DB", "Database corrupted - multiple matches found in config table {0}={1}".format(fieldName, result))
+      raise Exception("Corrupted database")
+
+  #################################################
+  # _AddToSingleColumnTable
+  #################################################
+  def _AddToSingleColumnTable(self, tableName, columnHeading, newValue):
+    tableExists = self._QueryDatabase("CREATE TABLE {0} ({1} text)".format(tableName, columnHeading), error = False)
+
+    match = None
+    if tableExists is None:
+      currentTable = self._GetFromSingleColumnTable(tableName)
+
+      if currentTable is not None:
+        for currentValue in currentTable:
+          if currentValue == newValue:
+            match = True
+
+    if match is None:
+      logzila.Log.Info("DB", "Adding {0} to {1} table".format(newValue, tableName))
+      self._QueryDatabase("INSERT INTO {0} VALUES (?)".format(tableName), (newValue, ))
+    else:
+      logzila.Log.Info("DB", "{0} already exists in {1} table".format(newValue, tableName))
+
+  #################################################
+  # _GetFromSingleColumnTable
+  #################################################
+  def _GetFromSingleColumnTable(self, tableName):
+    table = self._QueryDatabase("SELECT * FROM {0}".format(tableName), error = False)
+    if table is None:
+      return None
+    elif len(table) == 0:
+      return None
+    elif len(table) > 0:
+      tableList = [i[0] for i in table]
+      return tableList
+
+  #################################################
+  # AddSupportedFormat
+  #################################################
+  def AddSupportedFormat(self, fileFormat):
+    newFileFormat = fileFormat.lower()
+    self._AddToSingleColumnTable("SupportedFormat", "FileFormat", newFileFormat)
+
+  #################################################
+  # GetSupportedFormats
+  #################################################
+  def GetSupportedFormats(self):
+    formatList = self._GetFromSingleColumnTable("SupportedFormat")
+    return formatList
+
+  #################################################
+  # AddIgnoredDir
+  #################################################
+  def AddIgnoredDir(self, ignoredDir):
+    self._AddToSingleColumnTable("IgnoredDir", "DirName", ignoredDir)
+
+  #################################################
+  # GetIgnoredDirs
+  #################################################
+  def GetIgnoredDirs(self):
+    dirList = self._GetFromSingleColumnTable("IgnoredDir")
+    return dirList
+
+  #################################################
+  # AddNewShow
+  #################################################
+  #def AddNewShow(self, showName):
+  #  dbCursor = self._dbConnection.cursor()
+  #  try:
+  #    dbCursor.execute("CREATE TABLE ShowName (ShowID int NOT NULL PRIMARY KEY AUTOINCREMENT, ShowName text NOT NULL)")
+  #  except sqlite3.OperationalError:
+  #    # Lookup existing table entry if table already exists
+  #    existingTableEntry = self.GetShowID(guideName, fileShowName)
+  #  else:
+  #    existingTableEntry = None
 
   #################################################
   # _CheckAcceptableUserResponse
@@ -55,17 +171,15 @@ class RenamerDB:
   # AddShowNameEntry
   #################################################
   def AddShowNameEntry(self, guideName, fileShowName, guideShowName, guideID):
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("CREATE TABLE showname (guideName text, fileShowName text, guideShowName text, guideID int)")
-    except sqlite3.OperationalError:
-      # Lookup existing table entry if table already exists
+    tableExists = self._QueryDatabase("CREATE TABLE showname (guideName text, fileShowName text, guideShowName text, guideID int)", error = False)
+
+    if tableExists is None:
       existingTableEntry = self.CheckShowNameTable(guideName, fileShowName)
     else:
       existingTableEntry = None
 
     if existingTableEntry is None:
-      dbCursor.execute("INSERT INTO showname VALUES (?,?,?,?)", (guideName, fileShowName, guideShowName, guideID))
+      self._QueryDatabase("INSERT INTO showname VALUES (?,?,?,?)", (guideName, fileShowName, guideShowName, guideID))
     elif existingTableEntry[0] != guideShowName:
       logzila.Log.Info("DB", "*WARNING* Database guide show name mismatch for file show name {0}".format(fileShowName))
       logzila.Log.Info("DB", "New guide show name      = {0} (ID: {1})".format(guideShowName, guideID))
@@ -74,7 +188,7 @@ class RenamerDB:
       response = logzila.Log.Input("DM", prompt).lower()
       self._CheckAcceptableUserResponse(response, ('y', 'n'))
       if response == 'y':
-        dbCursor.execute("UPDATE showname SET guideShowName=?, guideID=? WHERE guideName=? AND fileShowName=?", (guideShowName, guideID, guideName, fileShowName))
+        self._QueryDatabase("UPDATE showname SET guideShowName=?, guideID=? WHERE guideName=? AND fileShowName=?", (guideShowName, guideID, guideName, fileShowName))
     elif existingTableEntry[1] != guideID:
       logzila.Log.Info("DB", "*WARNING* Database show ID mismatch for file show name {0}".format(fileShowName))
       logzila.Log.Info("DB", "New ID      = {0} (Showname: {1})".format(guideID, guideShowName))
@@ -83,22 +197,20 @@ class RenamerDB:
       response = logzila.Log.Input("DM", prompt).lower()
       self._CheckAcceptableUserResponse(response, ('y', 'n'))
       if response == 'y':
-        dbCursor.execute("UPDATE showname SET guideShowName=?, guideID=? WHERE guideName=? AND fileShowName=?", (guideShowName, guideID, guideName, fileShowName))
-    self._CommitChanges()
+        self._QueryDatabase("UPDATE showname SET guideShowName=?, guideID=? WHERE guideName=? AND fileShowName=?", (guideShowName, guideID, guideName, fileShowName))
 
   #################################################
   # CheckShowNameTable
   #################################################
   def CheckShowNameTable(self, guideName, fileShowName):
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("SELECT * FROM showname WHERE guideName=?", (guideName, ))
-    except sqlite3.OperationalError:
+    table = self._QueryDatabase("SELECT * FROM showname WHERE guideName=?", (guideName, ), error = False)
+
+    if table is None:
       return None
-    else:
-      table = dbCursor.fetchall()
+    elif len(table) == 0:
+      return None
+    elif len(table) > 0:
       for row in table:
-        #print(row)
         if row[1].lower() == fileShowName.lower():
           return (row[2], row[3])
       return None
@@ -122,163 +234,33 @@ class RenamerDB:
     self.AddShowNameEntry(guideName, fileShowName, guideShowName, 0)
 
   #################################################
-  # GetConfigValue
-  #################################################
-  def GetConfigValue(self, fieldName):
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("SELECT value FROM config WHERE name=?", (fieldName, ))
-    except sqlite3.OperationalError:
-      return None
-    else:
-      value = dbCursor.fetchone()
-      if value is None:
-        return None
-      else:
-        value = value[0]
-        logzila.Log.Info("DB", "Found database match in config table {0}={1}".format(fieldName, value))
-        return value
-
-  #################################################
-  # SetConfigValue
-  #################################################
-  def SetConfigValue(self, fieldName, value):
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("CREATE TABLE config (name text, value text)")
-    except sqlite3.OperationalError:
-      currentEntry = self.GetConfigValue(fieldName)
-    else:
-      currentEntry = None
-
-    if currentEntry is None:
-      logzila.Log.Info("DB", "Adding {0}={1} to database config table".format(fieldName, value))
-      dbCursor.execute("INSERT INTO config VALUES (?,?)", (fieldName, value))
-    else:
-      logzila.Log.Info("DB", "Updating {0} in database config table from {1} to {2}".format(fieldName, currentEntry, value))
-      dbCursor.execute("UPDATE config SET value=?, WHERE name=?", (value, fieldName))
-    self._CommitChanges()
-
-  #################################################
-  # GetSupportedFormats
-  #################################################
-  def GetSupportedFormats(self):
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("SELECT * FROM supported_formats")
-    except sqlite3.OperationalError:
-      return None
-    else:
-      table = dbCursor.fetchall()
-      formatList = [i[0] for i in table]
-      return formatList
-
-  #################################################
-  # AddSupportedFormat
-  #################################################
-  def AddSupportedFormat(self, fileFormat):
-    fileFormat = fileFormat.lower()
-    match = None
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("CREATE TABLE supported_formats (name text)")
-    except sqlite3.OperationalError:
-      currentFormats = self.GetSupportedFormats()
-      if currentFormats is not None:
-        for item in currentFormats:
-          if item == fileFormat:
-            match = 1
-
-    if match is None:
-      logzila.Log.Info("DB", "Adding {0} to supported formats table".format(fileFormat))
-      dbCursor.execute("INSERT INTO supported_formats VALUES (?)", (fileFormat, ))
-    else:
-      logzila.Log.Info("DB", "{0} already exists in supported formats table".format(fileFormat))
-    self._CommitChanges()
-
-  #################################################
-  # GetIgnoredDirs
-  #################################################
-  def GetIgnoredDirs(self):
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("SELECT * FROM ignored_dirs")
-    except sqlite3.OperationalError:
-      return None
-    else:
-      table = dbCursor.fetchall()
-      dirList = [i[0] for i in table]
-      return dirList
-
-  #################################################
-  # AddIgnoredDir
-  #################################################
-  def AddIgnoredDir(self, ignoredDir):
-    match = None
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("CREATE TABLE ignored_dirs (name text)")
-    except sqlite3.OperationalError:
-      ignoredDirList = self.GetIgnoredDirs()
-      if ignoredDirList is not None:
-        for item in ignoredDirList:
-          if item == ignoredDir:
-            match = 1
-
-    if match is None:
-      logzila.Log.Info("DB", "Adding {0} to ignored directories table".format(ignoredDir))
-      dbCursor.execute("INSERT INTO ignored_dirs VALUES (?)", (ignoredDir, ))
-    else:
-      logzila.Log.Info("DB", "{0} already exists in ignored directories table".format(ignoredDir))
-    self._CommitChanges()
-
-  #################################################
   # GetLibraryDirectory
   #################################################
   def GetLibraryDirectory(self, showName):
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("SELECT showDir FROM tv_library WHERE showName=?", (showName, ))
-    except sqlite3.OperationalError:
+    result = self._QueryDatabase("SELECT showDir FROM tv_library WHERE showName=?", (showName, ), error = False)
+
+    if result is None:
       return None
-    else:
-      value = dbCursor.fetchone()
-      if value is None:
-        return None
-      else:
-        value = value[0]
-        logzila.Log.Info("DB", "Found database match in library table {0}={1}".format(showName, value))
-        return value
+    elif len(result) == 0:
+      return None
+    elif len(result) == 1:
+      logzila.Log.Info("DB", "Found database match in library table {0}={1}".format(showName, result[0][0]))
+      return result[0][0]
 
   #################################################
   # AddLibraryDirectory
   #################################################
   def AddLibraryDirectory(self, showName, showDir):
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("CREATE TABLE tv_library (showName text, showDir text)")
-    except sqlite3.OperationalError:
+    tableExists = self._QueryDatabase("CREATE TABLE tv_library (showName text, showDir text)", error = False)
+
+    if tableExists is None:
       currentEntry = self.GetLibraryDirectory(showName)
     else:
       currentEntry = None
 
     if currentEntry is None:
       logzila.Log.Info("DB", "Adding {0}={1} to database library table".format(showName, showDir))
-      dbCursor.execute("INSERT INTO tv_library VALUES (?,?)", (showName, showDir))
+      self._QueryDatabase("INSERT INTO tv_library VALUES (?,?)", (showName, showDir))
     else:
       logzila.Log.Info("DB", "Updating {0} in database library table from {1} to {2}".format(showName, currentEntry, showDir))
-      dbCursor.execute("UPDATE tv_library SET showDir=? WHERE showName=?", (showDir, showName))
-    self._CommitChanges()
-
-  #################################################
-  # DropTable
-  #################################################
-  def DropTable(self, tableName):
-    logzila.Log.Info("DB", "Deleting table {0}".format(tableName))
-    dbCursor = self._GetCursor()
-    try:
-      dbCursor.execute("DROP TABLE {0}".format(tableName))
-    except sqlite3.OperationalError:
-      pass
-    else:
-      self._CommitChanges()
+      self._QueryDatabase("UPDATE tv_library SET showDir=? WHERE showName=?", (showDir, showName))
