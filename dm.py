@@ -49,7 +49,8 @@ class DownloadManager:
           self._db.SetConfigValue(configKey, configValue)
         else:
           logzila.Log.Info("DM", "{0} is not recognised as a directory".format(response))
-    elif os.path.isdir(configValue):
+
+    if os.path.isdir(configValue):
       logzila.Log.Info("DM", "Using {0} {1}".format(strDescriptor, configValue))
       logzila.Log.DecreaseIndent()
       return configValue

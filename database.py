@@ -13,32 +13,27 @@ class RenamerDB:
   # constructor
   #################################################
   def __init__(self, dbPath):
-    self._db = sqlite3.connect(dbPath)
+    self._dbPath = dbPath
 
   #################################################
   # _QueryDatabase
   #################################################
   def _QueryDatabase(self, query, tuples = None, commit = True, error = True):
     logzila.Log.Info("DB", "Database Query: {0} {1}".format(query, tuples))
-    try:
-      if tuples is None:
-        result = self._db.execute(query)
+    with sqlite3.connect(self._dbPath) as db:
+      try:
+        if tuples is None:
+          result = db.execute(query)
+        else:
+          result = db.execute(query, tuples)
+      except sqlite3.OperationalError:
+        if error is True:
+          raise
+        return None
       else:
-        result = self._db.execute(query, tuples)
-    except sqlite3.OperationalError:
-      if error is True:
-        raise
-      return None
-    else:
-      if commit is True:
-        self._db.commit()
-      return result.fetchall()
-
-  #################################################
-  # _SaveAndClose
-  #################################################
-  def _Close(self):
-    self._db.close()
+        if commit is True:
+          db.commit()
+        return result.fetchall()
 
   #################################################
   # DropTable
@@ -144,123 +139,169 @@ class RenamerDB:
     return dirList
 
   #################################################
-  # AddNewShow
+  # AddShowToTVLibrary
   #################################################
-  #def AddNewShow(self, showName):
-  #  dbCursor = self._dbConnection.cursor()
-  #  try:
-  #    dbCursor.execute("CREATE TABLE ShowName (ShowID int NOT NULL PRIMARY KEY AUTOINCREMENT, ShowName text NOT NULL)")
-  #  except sqlite3.OperationalError:
-  #    # Lookup existing table entry if table already exists
-  #    existingTableEntry = self.GetShowID(guideName, fileShowName)
-  #  else:
-  #    existingTableEntry = None
-
-  #################################################
-  # _CheckAcceptableUserResponse
-  #################################################
-  def _CheckAcceptableUserResponse(self, response, validList):
-    if response in validList:
-      return response
-    else:
-      prompt = "Unknown response given - please reenter one of [{0}]: ".format('/'.join(validList))
-      response = logzila.Log.Input("DM", prompt)
-      self._CheckAcceptableUserResponse(response, validList)
-
-  #################################################
-  # AddShowNameEntry
-  #################################################
-  def AddShowNameEntry(self, guideName, fileShowName, guideShowName, guideID):
-    tableExists = self._QueryDatabase("CREATE TABLE showname (guideName text, fileShowName text, guideShowName text, guideID int)", error = False)
+  def AddShowToTVLibrary(self, showName):
+    logzila.Log.Info("DB", "Adding {0} to TV library".format(showName))
+    queryStr = ("CREATE TABLE TVLibrary ("
+                "ShowID INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                "ShowName TEXT UNIQUE NOT NULL, "
+                "ShowDir TEXT UNIQUE"
+                ")")
+    tableExists = self._QueryDatabase(queryStr, error = False)
 
     if tableExists is None:
-      existingTableEntry = self.CheckShowNameTable(guideName, fileShowName)
+      currentShowValues = self.SearchTVLibrary(showName = showName)
     else:
-      existingTableEntry = None
+      currentShowValues = None
 
-    if existingTableEntry is None:
-      self._QueryDatabase("INSERT INTO showname VALUES (?,?,?,?)", (guideName, fileShowName, guideShowName, guideID))
-    elif existingTableEntry[0] != guideShowName:
-      logzila.Log.Info("DB", "*WARNING* Database guide show name mismatch for file show name {0}".format(fileShowName))
-      logzila.Log.Info("DB", "New guide show name      = {0} (ID: {1})".format(guideShowName, guideID))
-      logzila.Log.Info("DB", "Database guide show name = {0} (ID: {1})".format(existingTableEntry[0], existingTableEntry[1]))
-      prompt = "Do you want to update the database with the new show name value? [y/n]: "
-      response = logzila.Log.Input("DM", prompt).lower()
-      self._CheckAcceptableUserResponse(response, ('y', 'n'))
-      if response == 'y':
-        self._QueryDatabase("UPDATE showname SET guideShowName=?, guideID=? WHERE guideName=? AND fileShowName=?", (guideShowName, guideID, guideName, fileShowName))
-    elif existingTableEntry[1] != guideID:
-      logzila.Log.Info("DB", "*WARNING* Database show ID mismatch for file show name {0}".format(fileShowName))
-      logzila.Log.Info("DB", "New ID      = {0} (Showname: {1})".format(guideID, guideShowName))
-      logzila.Log.Info("DB", "Database ID = {0} (Showname: {1})".format(existingTableEntry[1], existingTableEntry[0]))
-      prompt = "Do you want to update the database with the new ID value? [y/n]: "
-      response = logzila.Log.Input("DM", prompt).lower()
-      self._CheckAcceptableUserResponse(response, ('y', 'n'))
-      if response == 'y':
-        self._QueryDatabase("UPDATE showname SET guideShowName=?, guideID=? WHERE guideName=? AND fileShowName=?", (guideShowName, guideID, guideName, fileShowName))
+    if currentShowValues is None:
+      self._QueryDatabase("INSERT INTO TVLibrary (ShowName) VALUES (?)", (showName, ))
+      showID = self._QueryDatabase("SELECT (ShowID) FROM TVLibrary WHERE ShowName=?", (showName, ))[0][0]
+      return showID
+    else:
+      logzila.Log.Info("DB", "An entry for {0} already exists in the TV library".format(showName))
+      raise Exception("Corrupted database")
 
   #################################################
-  # CheckShowNameTable
+  # UpdateShowDirInTVLibrary
   #################################################
-  def CheckShowNameTable(self, guideName, fileShowName):
-    table = self._QueryDatabase("SELECT * FROM showname WHERE guideName=?", (guideName, ), error = False)
-
-    if table is None:
-      return None
-    elif len(table) == 0:
-      return None
-    elif len(table) > 0:
-      for row in table:
-        if row[1].lower() == fileShowName.lower():
-          return (row[2], row[3])
-      return None
+  def UpdateShowDirInTVLibrary(self, showID, showDir):
+    logzila.Log.Info("DB", "Updating TV library for ShowID={0}: ShowDir={1}".format(showID, showDir))
+    self._QueryDatabase("UPDATE TVLibrary SET ShowDir=? WHERE ShowID=?", (showDir, showID))
 
   #################################################
-  # GetShowName
+  # SearchTVLibrary
   #################################################
-  def GetShowName(self, guideName, fileShowName):
-    try:
-      guideShowName = self.CheckShowNameTable(guideName, fileShowName)[0]
-      logzila.Log.Info("DB", "Match found in database: {0}".format(fileShowName))
-      return guideShowName
-    except TypeError:
-      return None
+  def SearchTVLibrary(self, showName = None, showID = None, showDir = None):
+    unique = True
+    if showName is None and showID is None and showDir is None:
+      logzila.Log.Info("DB", "Looking up all items in TV library")
+      queryString = "SELECT * FROM TVLibrary"
+      queryTuple = None
+      unique = False
+    elif showDir is not None:
+      logzila.Log.Info("DB", "Looking up from TV library where ShowDir is {0}".format(showDir))
+      queryString = "SELECT * FROM TVLibrary WHERE ShowDir=?"
+      queryTuple = (showDir, )
+    elif showID is not None:
+      logzila.Log.Info("DB", "Looking up from TV library where ShowID is {0}".format(showID))
+      queryString = "SELECT * FROM TVLibrary WHERE ShowID=?"
+      queryTuple = (showID, )
+    elif showName is not None:
+      logzila.Log.Info("DB", "Looking up from TV library where ShowName is {0}".format(showName))
+      queryString = "SELECT * FROM TVLibrary WHERE ShowName=?"
+      queryTuple = (showName, )
 
-  #################################################
-  # AddShowName
-  #################################################
-  def AddShowName(self, guideName, fileShowName, guideShowName):
-    logzila.Log.Info("DB", "Adding match to database for future lookup {0}->{1}".format(fileShowName, guideShowName))
-    self.AddShowNameEntry(guideName, fileShowName, guideShowName, 0)
-
-  #################################################
-  # GetLibraryDirectory
-  #################################################
-  def GetLibraryDirectory(self, showName):
-    result = self._QueryDatabase("SELECT showDir FROM tv_library WHERE showName=?", (showName, ), error = False)
+    result = self._QueryDatabase(queryString, queryTuple, error = False)
 
     if result is None:
       return None
     elif len(result) == 0:
       return None
     elif len(result) == 1:
-      logzila.Log.Info("DB", "Found database match in library table {0}={1}".format(showName, result[0][0]))
-      return result[0][0]
+      logzila.Log.Info("DB", "Found match in TVLibrary: {0}".format(result))
+      return result
+    elif len(result) > 1:
+      if unique is True:
+        logzila.Log.Info("DB", "Database corrupted - multiple matches found in TV Library: {0}".format(result))
+        raise Exception("Corrupted database")
+      else:
+        logzila.Log.Info("DB", "Found multiple matches in TVLibrary: {0}".format(result))
+        return result
 
   #################################################
-  # AddLibraryDirectory
+  # SearchFileNameTable
   #################################################
-  def AddLibraryDirectory(self, showName, showDir):
-    tableExists = self._QueryDatabase("CREATE TABLE tv_library (showName text, showDir text)", error = False)
+  def SearchFileNameTable(self, fileName):
+    logzila.Log.Info("DB", "Looking up filename string '{0}' in database".format(fileName))
+
+    queryString = "SELECT ShowID FROM FileName WHERE FileName=?"
+    queryTuple = (fileName, )
+
+    result = self._QueryDatabase(queryString, queryTuple, error = False)
+
+    if result is None:
+      logzila.Log.Info("DB", "No match found in database for '{0}'".format(fileName))
+      return None
+    elif len(result) == 0:
+      return None
+    elif len(result) == 1:
+      logzila.Log.Info("DB", "Found file name match: {0}".format(result))
+      return result[0][0]
+    elif len(result) > 1:
+      logzila.Log.Info("DB", "Database corrupted - multiple matches found in database table for: {0}".format(result))
+      raise Exception("Corrupted database")
+
+  #################################################
+  # AddFileNameTable
+  #################################################
+  def AddToFileNameTable(self, fileName, showID):
+    logzila.Log.Info("DB", "Adding filename string match '{0}'={1} to database".format(fileName, showID))
+
+    queryStr = ("CREATE TABLE FileName ("
+                "FileName TEXT UNIQUE NOT NULL, "
+                "ShowID INTEGER, "
+                "FOREIGN KEY (ShowID) REFERENCES ShowName(ShowID)"
+                ")")
+    tableExists = self._QueryDatabase(queryStr, error = False)
 
     if tableExists is None:
-      currentEntry = self.GetLibraryDirectory(showName)
+      currentValues = self.SearchFileNameTable(fileName)
     else:
-      currentEntry = None
+      currentValues = None
 
-    if currentEntry is None:
-      logzila.Log.Info("DB", "Adding {0}={1} to database library table".format(showName, showDir))
-      self._QueryDatabase("INSERT INTO tv_library VALUES (?,?)", (showName, showDir))
+    if currentValues is None:
+      self._QueryDatabase("INSERT INTO FileName (FileName, ShowID) VALUES (?,?)", (fileName, showID))
     else:
-      logzila.Log.Info("DB", "Updating {0} in database library table from {1} to {2}".format(showName, currentEntry, showDir))
-      self._QueryDatabase("UPDATE tv_library SET showDir=? WHERE showName=?", (showDir, showName))
+      logzila.Log.Info("DB", "An entry for '{0}' already exists in the FileName table".format(fileName))
+      raise Exception("Corrupted database")
+
+  #################################################
+  # SearchSeasonDirTable
+  #################################################
+  def SearchSeasonDirTable(self, showID, seasonNum):
+    logzila.Log.Info("DB", "Looking up directory for ShowID={0} Season={1} in database".format(showID, seasonNum))
+
+    queryString = "SELECT SeasonDir FROM SeasonDir WHERE ShowID=? AND Season=?"
+    queryTuple = (showID, seasonNum)
+
+    result = self._QueryDatabase(queryString, queryTuple, error = False)
+
+    if result is None:
+      logzila.Log.Info("DB", "No match found in database")
+      return None
+    elif len(result) == 0:
+      return None
+    elif len(result) == 1:
+      logzila.Log.Info("DB", "Found database match: {0}".format(result))
+      return result[0][0]
+    elif len(result) > 1:
+      logzila.Log.Info("DB", "Database corrupted - multiple matches found in database table for: {0}".format(result))
+      raise Exception("Corrupted database")
+
+  #################################################
+  # AddSeasonDirTable
+  #################################################
+  def AddSeasonDirTable(self, showID, seasonNum, seasonDir):
+    logzila.Log.Info("DB", "Adding season directory ({0}) to database for ShowID={1}, Season={2}".format(seasonDir, showID, seasonNum))
+
+    queryStr = ("CREATE TABLE SeasonDir ("
+                "SeasonDir TEXT NOT NULL, "
+                "Season INTEGER NOT NULL, "
+                "ShowID INTEGER, "
+                "FOREIGN KEY (ShowID) REFERENCES ShowName(ShowID),"
+                "CONSTRAINT SeasonDirPK PRIMARY KEY (ShowID,Season)"
+                ")")
+    tableExists = self._QueryDatabase(queryStr, error = False)
+
+    if tableExists is None:
+      currentValues = self.SearchSeasonDirTable(showID, seasonNum)
+    else:
+      currentValues = None
+
+    if currentValues is None:
+      self._QueryDatabase("INSERT INTO SeasonDir (SeasonDir, Season, ShowID) VALUES (?,?,?)", (seasonDir, seasonNum, showID))
+    else:
+      logzila.Log.Info("DB", "An entry already exists in the SeasonDir table")
+      raise Exception("Corrupted database")

@@ -22,7 +22,7 @@ def CheckPathExists(path):
   root, ext = os.path.splitext(path)
   while os.path.exists(path):
     i = i + 1
-    logzila.Log.Info("TEST", "Path {0} already exists".format(path))
+    logzila.Log.Info("UTIL", "Path {0} already exists".format(path))
     path = "{0}_{1}".format(root, i) + ext
   return path
 
@@ -38,21 +38,35 @@ def StripSpecialCharacters(string):
   logzila.Log.Info("UTIL", "New string is: {0}".format(string))
   return string
 
+#################################################
+# ValidUserResponse
+#################################################
+def ValidUserResponse(response, validList):
+  if response in validList:
+    return response
+  else:
+    prompt = "Unknown response given - please reenter one of [{0}]: ".format('/'.join(validList))
+    response = logzila.Log.Input("DM", prompt)
+    self._CheckAcceptableUserResponse(response, validList)
+
 ############################################################################
 # UserAcceptance
 ############################################################################
-def UserAcceptance(matchList, recursiveLookup = True):
+def UserAcceptance(matchList, recursiveLookup = True, promptComment = None, promptOnly = False):
   matchString = ', '.join(matchList)
 
   if len(matchList) == 1:
-    logzila.Log.Info("UTIL", "Match found: {0}".format(matchString))
+    if promptOnly is False:
+      logzila.Log.Info("UTIL", "Match found: {0}".format(matchString))
     prompt = "Enter 'y' to accept this match or e"
   elif len(matchList) > 1:
-    logzila.Log.Info("UTIL", "Multiple possible matches found: {0}".format(matchString))
+    if promptOnly is False:
+      logzila.Log.Info("UTIL", "Multiple possible matches found: {0}".format(matchString))
     prompt = "Enter correct match from list or e"
     option = 2
   else:
-    logzila.Log.Info("UTIL", "No match found")
+    if promptOnly is False:
+      logzila.Log.Info("UTIL", "No match found")
     prompt = "E"
     if not recursiveLookup:
       return None
@@ -60,7 +74,10 @@ def UserAcceptance(matchList, recursiveLookup = True):
   if recursiveLookup:
     prompt = prompt + "nter a different string to look up or e"
 
-  prompt = prompt + "nter 'x' to skip this selection: "
+  if promptComment is None:
+    prompt = prompt + "nter 'x' to skip this selection: "
+  else:
+    prompt = prompt + "nter 'x' to skip this selection ({0}): ".format(promptComment)
 
   while(1):
     response = logzila.Log.Input('UTIL', prompt)
@@ -87,10 +104,11 @@ def GetBestMatch(target, matchList):
       ratioMatch.append(GetBestStringMatchValue(target, item))
 
     maxRatio = max(ratioMatch)
-    matchIndexList = [i for i, j in enumerate(ratioMatch) if j == maxRatio]
+    if maxRatio > 0.8:
+      matchIndexList = [i for i, j in enumerate(ratioMatch) if j == maxRatio]
 
-    for index in matchIndexList:
-      bestMatchList.append(matchList[index])
+      for index in matchIndexList:
+        bestMatchList.append(matchList[index])
   return bestMatchList
 
 ############################################################################

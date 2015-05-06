@@ -38,7 +38,6 @@ class EPGuidesLookup:
   # will read this file.
   ############################################################################
   def _GetAllShowList(self):
-
     today = datetime.date.today().strftime("%Y%m%d")
     saveFile = '_epguides_' + today + '.csv'
     saveFilePath = os.path.join(self._saveDir, saveFile)
@@ -170,6 +169,7 @@ class EPGuidesLookup:
   # Get closest show name match to a given string
   ############################################################################
   def ShowNameLookUp(self, string):
+    logzila.Log.Info("EPGUIDES", "Looking up show name match for string '{0}' in guide".format(string))
     self._GetTitleList()
     showName = util.GetBestMatch(string, self._showTitleList)
     return(showName)
