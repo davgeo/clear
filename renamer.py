@@ -209,6 +209,7 @@ class TVRenamer:
   ############################################################################
   def _LookUpSeasonDirectory(self, showID, showDir, seasonNum):
     logzila.Log.Info("RENAMER", "Looking up season directory for show {0}".format(showID))
+    logzila.Log.IncreaseIndent()
 
     # Look up existing season folder from database
     seasonDirName = self._db.SearchSeasonDirTable(showID, seasonNum)
@@ -277,6 +278,7 @@ class TVRenamer:
       # Add season directory to database
       self._db.AddSeasonDirTable(showID, seasonNum, seasonDirName)
 
+    logzila.Log.DecreaseIndent()
     return seasonDirName
 
   ############################################################################
@@ -286,6 +288,7 @@ class TVRenamer:
   def _AddFileToLibrary(self, tvFile):
     # Look up base show name directory in database
     logzila.Log.Info("RENAMER", "Looking up library directory in database for show: {0}".format(tvFile.guideShowName))
+    logzila.Log.IncreaseIndent()
     showID, showName, showDir = self._db.SearchTVLibrary(showName = tvFile.guideShowName)[0]
 
     if showDir is None:
@@ -312,6 +315,7 @@ class TVRenamer:
           stripedDir = util.StripSpecialCharacters(tvFile.guideShowName)
           response = logzila.Log.Input('RENAMER', "Enter 'y' to accept this directory, 'x' to skip this show or enter a new directory to use: ")
           if response.lower() == 'x':
+            logzila.Log.DecreaseIndent()
             return None
           elif response.lower() == 'y':
             showDir = stripedDir
@@ -329,6 +333,8 @@ class TVRenamer:
     # Add base directory to show path
     showDir = os.path.join(self._tvDir, showDir)
 
+    logzila.Log.DecreaseIndent()
+
     # Lookup and add season directory to show path
     seasonDir = self._LookUpSeasonDirectory(showID, showDir, tvFile.seasonNum)
 
@@ -340,6 +346,7 @@ class TVRenamer:
 
     # Rename file
     self._MoveFileToLibrary(tvFile.origFilePath, tvFile.newFilePath)
+
 
   # *** EXTERNAL CLASSES *** #
   ############################################################################
@@ -378,6 +385,7 @@ class TVRenamer:
     logzila.Log.Info("RENAMER", "Renaming files:\n")
     for tvFile in activeFileList:
       tvFile.Print()
+      logzila.Log.NewLine()
       self._AddFileToLibrary(tvFile)
       logzila.Log.NewLine()
 

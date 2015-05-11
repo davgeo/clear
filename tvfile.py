@@ -2,6 +2,7 @@
 # Python default package imports
 import os
 import re
+import collections
 
 # Local file imports
 import logzila
@@ -11,20 +12,29 @@ import util
 # TVFile
 #################################################
 class TVFile:
+  ShowInfoTuple = collections.namedtuple("ShowInfo", ["showID",
+                                                      "showName",
+                                                      "episodeName",
+                                                      "seasonNum",
+                                                      "episodeNum"])
+
+  FileInfoTuple = collections.namedtuple("FileInfo", ["origFilePath",
+                                                      "newFilePath"])
+
   #################################################
   # constructor
   #################################################
   def __init__(self, filePath):
+    #self.showInfo = ShowInfoTuple(None, None, None, None, None)
+    #self.fileInfo = FileInfoTuple(filePath, None)
+
     self.origFilePath = filePath
     self.origFileName = os.path.splitext(os.path.basename(filePath))[0]
-    self.fileDir = os.path.dirname(filePath)
-    self.ext = os.path.splitext(filePath)[1]
     self.fileShowName = None
     self.seasonNum = None
     self.episodeNum = None
     self.episodeName = None
     self.guideShowName = None
-    self.newFileName = None
     self.newFilePath = None
 
   ############################################################################
@@ -60,9 +70,11 @@ class TVFile:
   def GenerateNewFileName(self):
     if self.guideShowName is not None and self.seasonNum is not None and \
        self.episodeNum is not None and self.episodeName is not None:
+      ext = os.path.splitext(self.origFilePath)[1]
       newFileName = "{0}.S{1}E{2}.{3}{4}".format(self.guideShowName, self.seasonNum, \
-                                            self.episodeNum, self.episodeName, self.ext)
-      self.newFileName = util.StripSpecialCharacters(newFileName)
+                                            self.episodeNum, self.episodeName, ext)
+      newFileName = util.StripSpecialCharacters(newFileName)
+      return newFileName
 
   ############################################################################
   # GenerateNewFilePath
@@ -70,11 +82,11 @@ class TVFile:
   # the original file path is used.
   ############################################################################
   def GenerateNewFilePath(self, fileDir = None):
-    self.GenerateNewFileName()
-    if self.newFileName is not None:
+    newFileName = self.GenerateNewFileName()
+    if newFileName is not None:
       if fileDir is None:
-        fileDir = self.fileDir
-      self.newFilePath = os.path.join(fileDir, self.newFileName)
+        fileDir = os.path.dirname(self.origFilePath)
+      self.newFilePath = os.path.join(fileDir, newFileName)
 
   ############################################################################
   # Print

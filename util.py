@@ -56,12 +56,10 @@ def UserAcceptance(matchList, recursiveLookup = True, promptComment = None, prom
   matchString = ', '.join(matchList)
 
   if len(matchList) == 1:
-    if promptOnly is False:
-      logzila.Log.Info("UTIL", "Match found: {0}".format(matchString))
+    logzila.Log.Info("UTIL", "Match found: {0}".format(matchString))
     prompt = "Enter 'y' to accept this match or e"
   elif len(matchList) > 1:
-    if promptOnly is False:
-      logzila.Log.Info("UTIL", "Multiple possible matches found: {0}".format(matchString))
+    logzila.Log.Info("UTIL", "Multiple possible matches found: {0}".format(matchString))
     prompt = "Enter correct match from list or e"
     option = 2
   else:
