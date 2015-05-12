@@ -5,6 +5,7 @@ import difflib
 import glob
 import os
 import re
+import sys
 
 # Python custom package imports
 import requests
@@ -72,14 +73,19 @@ def UserAcceptance(matchList, recursiveLookup = True, promptComment = None, prom
   if recursiveLookup:
     prompt = prompt + "nter a different string to look up or e"
 
+  prompt = prompt + "nter 'x' to skip this selection or enter 'exit' to quit this program"
+
   if promptComment is None:
-    prompt = prompt + "nter 'x' to skip this selection: "
+    prompt = prompt + ": "
   else:
-    prompt = prompt + "nter 'x' to skip this selection ({0}): ".format(promptComment)
+    prompt = prompt + " ({0}): ".format(promptComment)
 
   while(1):
     response = logzila.Log.Input('UTIL', prompt)
 
+    if response.lower() == 'exit':
+      logzila.Log.Info("UTIL", "Program terminated by user 'exit'")
+      sys.exit(0)
     if response.lower() == 'x':
       return None
     elif response.lower() == 'y' and len(matchList) == 1:
