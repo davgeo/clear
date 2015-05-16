@@ -2,7 +2,7 @@
 # Python default package imports
 import os
 import re
-import collections
+import types
 
 # Local file imports
 import logzila
@@ -12,30 +12,21 @@ import util
 # TVFile
 #################################################
 class TVFile:
-  ShowInfoTuple = collections.namedtuple("ShowInfo", ["showID",
-                                                      "showName",
-                                                      "episodeName",
-                                                      "seasonNum",
-                                                      "episodeNum"])
-
-  FileInfoTuple = collections.namedtuple("FileInfo", ["origFilePath",
-                                                      "newFilePath"])
-
   #################################################
   # constructor
   #################################################
   def __init__(self, filePath):
-    #self.showInfo = ShowInfoTuple(None, None, None, None, None)
-    #self.fileInfo = FileInfoTuple(filePath, None)
+    self.fileInfo = types.SimpleNamespace()
+    self.fileInfo.origPath = filePath
+    self.fileInfo.newPath = None
+    self.fileInfo.showName = None
 
-    self.origFilePath = filePath
-    self.origFileName = os.path.splitext(os.path.basename(filePath))[0]
-    self.fileShowName = None
-    self.seasonNum = None
-    self.episodeNum = None
-    self.episodeName = None
-    self.guideShowName = None
-    self.newFilePath = None
+    self.showInfo = types.SimpleNamespace()
+    self.showInfo.showID = None
+    self.showInfo.showName = None
+    self.showInfo.seasonNum = None
+    self.showInfo.episodeNum = None
+    self.showInfo.episodeName = None
 
   ############################################################################
   # GetShowDetails
@@ -44,22 +35,23 @@ class TVFile:
   # All information preceeding this is used as the show name
   ############################################################################
   def GetShowDetails(self):
-    match = re.findall("[sS]([0-9]+)[eE]([0-9]+)", self.origFileName)
+    fileName = os.path.splitext(os.path.basename(self.fileInfo.origPath))[0]
+    match = re.findall("[sS]([0-9]+)[eE]([0-9]+)", fileName)
     match = set(match) # Eliminate any duplicate matches
 
     if len(match) != 1:
       if len(match) == 0:
-        logzila.Log.Info("TVFILE", "Incompatible filename no season and episode match detected: {0}".format(self.origFilePath))
+        logzila.Log.Info("TVFILE", "Incompatible filename no season and episode match detected: {0}".format(self.fileInfo.origPath))
       else:
-        logzila.Log.Info("TVFILE", "Incompatible filename multiple different season and episode matches detected: {0}".format(self.origFilePath))
+        logzila.Log.Info("TVFILE", "Incompatible filename multiple different season and episode matches detected: {0}".format(self.fileInfo.origPath))
       return(False)
     else:
-      (self.seasonNum, self.episodeNum) = match.pop()
-      if len(self.seasonNum) == 1:
-        self.seasonNum = "0{0}".format(self.seasonNum)
-      if len(self.episodeNum) == 1:
-        self.episodeNum = "0{0}".format(self.episodeNum)
-      self.fileShowName = re.findall("(.+?)[_.-?][sS][0-9]+[eE][0-9]+", self.origFileName)[0]
+      (self.showInfo.seasonNum, self.showInfo.episodeNum) = match.pop()
+      if len(self.showInfo.seasonNum) == 1:
+        self.showInfo.seasonNum = "0{0}".format(self.showInfo.seasonNum)
+      if len(self.showInfo.episodeNum) == 1:
+        self.showInfo.episodeNum = "0{0}".format(self.showInfo.episodeNum)
+      self.fileInfo.showName = re.findall("(.+?)[_.-?][sS][0-9]+[eE][0-9]+", fileName)[0]
       return(True)
 
   ############################################################################
@@ -68,11 +60,11 @@ class TVFile:
   # and episode name.
   ############################################################################
   def GenerateNewFileName(self):
-    if self.guideShowName is not None and self.seasonNum is not None and \
-       self.episodeNum is not None and self.episodeName is not None:
-      ext = os.path.splitext(self.origFilePath)[1]
-      newFileName = "{0}.S{1}E{2}.{3}{4}".format(self.guideShowName, self.seasonNum, \
-                                            self.episodeNum, self.episodeName, ext)
+    if self.showInfo.showName is not None and self.showInfo.seasonNum is not None and \
+       self.showInfo.episodeNum is not None and self.showInfo.episodeName is not None:
+      ext = os.path.splitext(self.fileInfo.origPath)[1]
+      newFileName = "{0}.S{1}E{2}.{3}{4}".format(self.showInfo.showName, self.showInfo.seasonNum, \
+                                            self.showInfo.episodeNum, self.showInfo.episodeName, ext)
       newFileName = util.StripSpecialCharacters(newFileName)
       return newFileName
 
@@ -85,8 +77,8 @@ class TVFile:
     newFileName = self.GenerateNewFileName()
     if newFileName is not None:
       if fileDir is None:
-        fileDir = os.path.dirname(self.origFilePath)
-      self.newFilePath = os.path.join(fileDir, newFileName)
+        fileDir = os.path.dirname(self.fileInfo.origPath)
+      self.fileInfo.newPath = os.path.join(fileDir, newFileName)
 
   ############################################################################
   # Print
@@ -94,15 +86,15 @@ class TVFile:
   def Print(self):
     logzila.Log.Info("TVFILE", "TV File details are:")
     logzila.Log.IncreaseIndent()
-    logzila.Log.Info("TVFILE", "Original File Path      = {0}".format(self.origFilePath))
-    if self.guideShowName is not None:
-      logzila.Log.Info("TVFILE", "Show Name (from guide)  = {0}".format(self.guideShowName))
-    elif self.fileShowName is not None:
-      logzila.Log.Info("TVFILE", "Show Name (from file)   = {0}".format(self.fileShowName))
-    if self.seasonNum is not None and self.episodeNum is not None:
-      logzila.Log.Info("TVFILE", "Season & Episode        = S{0}E{1}".format(self.seasonNum, self.episodeNum))
-    if self.episodeName is not None:
-      logzila.Log.Info("TVFILE", "Episode Name:           = {0}".format(self.episodeName))
-    if self.newFilePath is not None:
-      logzila.Log.Info("TVFILE", "New File Path           = {0}".format(self.newFilePath))
+    logzila.Log.Info("TVFILE", "Original File Path      = {0}".format(self.fileInfo.origPath))
+    if self.showInfo.showName is not None:
+      logzila.Log.Info("TVFILE", "Show Name (from guide)  = {0}".format(self.showInfo.showName))
+    elif self.fileInfo.showName is not None:
+      logzila.Log.Info("TVFILE", "Show Name (from file)   = {0}".format(self.fileInfo.showName))
+    if self.showInfo.seasonNum is not None and self.showInfo.episodeNum is not None:
+      logzila.Log.Info("TVFILE", "Season & Episode        = S{0}E{1}".format(self.showInfo.seasonNum, self.showInfo.episodeNum))
+    if self.showInfo.episodeName is not None:
+      logzila.Log.Info("TVFILE", "Episode Name:           = {0}".format(self.showInfo.episodeName))
+    if self.fileInfo.newPath is not None:
+      logzila.Log.Info("TVFILE", "New File Path           = {0}".format(self.fileInfo.newPath))
     logzila.Log.DecreaseIndent()
