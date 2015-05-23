@@ -296,12 +296,15 @@ class RenamerDB:
     tableExists = self._QueryDatabase(queryStr, error = False)
 
     if tableExists is None:
-      currentValues = self.SearchSeasonDirTable(showID, seasonNum)
+      currentValue = self.SearchSeasonDirTable(showID, seasonNum)
     else:
-      currentValues = None
+      currentValue = None
 
-    if currentValues is None:
+    if currentValue is None:
       self._QueryDatabase("INSERT INTO SeasonDir (SeasonDir, Season, ShowID) VALUES (?,?,?)", (seasonDir, seasonNum, showID))
     else:
-      logzila.Log.Info("DB", "An entry already exists in the SeasonDir table")
-      raise Exception("Corrupted database")
+      if currentValue == seasonDir:
+        logzila.Log.Info("DB", "A matching entry already exists in the SeasonDir table")
+      else:
+        logzila.Log.Info("DB", "A different entry already exists in the SeasonDir table")
+        raise Exception("Corrupted database")

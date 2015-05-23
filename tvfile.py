@@ -9,6 +9,20 @@ import logzila
 import util
 
 #################################################
+# ShowInfo
+#################################################
+class ShowInfo:
+  #################################################
+  # constructor
+  #################################################
+  def __init__(self, showID = None, showName = None):
+    self.showID = showID
+    self.showName = showName
+    self.seasonNum = None
+    self.episodeNum = None
+    self.episodeName = None
+
+#################################################
 # TVFile
 #################################################
 class TVFile:
@@ -21,12 +35,7 @@ class TVFile:
     self.fileInfo.newPath = None
     self.fileInfo.showName = None
 
-    self.showInfo = types.SimpleNamespace()
-    self.showInfo.showID = None
-    self.showInfo.showName = None
-    self.showInfo.seasonNum = None
-    self.showInfo.episodeNum = None
-    self.showInfo.episodeName = None
+    self.showInfo = ShowInfo()
 
   ############################################################################
   # GetShowDetails

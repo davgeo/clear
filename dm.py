@@ -26,6 +26,7 @@ class DownloadManager:
     self._supportedFormatsList = []
     self._ignoredDirsList = []
     self._databasePath = 'test.db'
+    self._inPlaceRename = False
     self._crossSystemCopyEnabled = False
 
   ############################################################################
@@ -140,7 +141,8 @@ class DownloadManager:
     self._downloadDir = self._GetConfigDir('DownloadDir', 'download directory')
 
     # TV DIRECTORY
-    self._tvDir = self._GetConfigDir('TVDir', 'tv directory')
+    if self._inPlaceRename is False:
+      self._tvDir = self._GetConfigDir('TVDir', 'tv directory')
 
     # SUPPORTED FILE FORMATS
     self._supportedFormatsList = self._GetSupportedFormats()
@@ -165,6 +167,7 @@ class DownloadManager:
     parser.add_argument('--live', help='run with live database', action="store_true")
     parser.add_argument('--reset', help='resets database', action="store_true")
     parser.add_argument('--copy', help='enable copying between file systems', action="store_true")
+    parser.add_argument('--inplace', help='rename files in place', action="store_true")
     parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
     args = parser.parse_args()
 
@@ -180,11 +183,14 @@ class DownloadManager:
       else:
         sys.exit(0)
 
+    if args.inplace:
+      self._inPlaceRename = True
+
     if args.copy:
       self._crossSystemCopyEnabled = True
 
     if args.tags:
-      logzila.Log.tagsEnabled = 1;
+      logzila.Log.tagsEnabled = 1
 
   ############################################################################
   # Run
@@ -201,8 +207,12 @@ class DownloadManager:
     logzila.Log.Seperator()
 
     tvFileList = []
+    logzila.Log.Info("DM", "Parsing download directory for compatible files")
+    logzila.Log.IncreaseIndent()
     util.GetSupportedFilesInDir(self._downloadDir, tvFileList, self._supportedFormatsList, self._ignoredDirsList)
-    tvRenamer = renamer.TVRenamer(self._db, tvFileList, guideName = 'EPGUIDES', destDir = self._tvDir, forceCopy = self._crossSystemCopyEnabled)
+    logzila.Log.DecreaseIndent()
+
+    tvRenamer = renamer.TVRenamer(self._db, tvFileList, guideName = 'EPGUIDES', destDir = self._tvDir, inPlaceRename = self._inPlaceRename, forceCopy = self._crossSystemCopyEnabled)
     tvRenamer.Run()
 
 ############################################################################
