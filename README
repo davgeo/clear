@@ -1,0 +1,20 @@
+Download Manager README
+-----------------------------------------------------
+
+This package requires:
+* Python 3.4+
+* Python Requests package
+
+-----------------------------------------------------
+
+Use pip to install Python requests package:
+
+* python3 -m pip install requests
+
+To install this on Synology NAS the pip package must be installed first:
+
+* Download get-pip.py to NAS downloads folder (google python pip for more info)
+* SSH into DiskStation as root user: ssh root@$DISKSTATION
+* Change directory to get-pip.py directory (e.g. cd /volume1/downloads/)
+* Execute get-pip script: python3 get-pip.py
+* Proceed with requests install as before (python3 -m pip install requests)

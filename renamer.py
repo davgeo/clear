@@ -310,7 +310,7 @@ class TVRenamer:
     showID, showName, showDir = self._db.SearchTVLibrary(showName = tvFile.showInfo.showName)[0]
 
     if showDir is None:
-      logzila.Log.Info("RENAMER", "No directory match found in database - looking for best match in library directory: {1}".format(infoStr, libraryDir))
+      logzila.Log.Info("RENAMER", "No directory match found in database - looking for best match in library directory: {0}".format(libraryDir))
       # Parse TV dir for best match
       dirList = os.listdir(libraryDir)
       promptOnly = False

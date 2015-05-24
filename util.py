@@ -158,11 +158,14 @@ def GetBestStringMatchValue(string1, string2):
 
 ############################################################################
 # WebLookup
+# Default encoding is UTF8
 ############################################################################
-def WebLookup(url, urlQuery=None):
+def WebLookup(url, urlQuery=None, utf8=True):
   # Look up webpage at given url with optional query string
   logzila.Log.Info("UTIL", "Looking up info from URL:{0} with QUERY:{1})".format(url, urlQuery))
   response = requests.get(url, params=urlQuery)
+  if utf8 is True:
+    response.encoding = 'utf-8'
   if(response.status_code == requests.codes.ok):
     return(response.text)
   else:

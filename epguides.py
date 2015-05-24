@@ -4,7 +4,6 @@ import os
 import glob
 import csv
 import datetime
-import xml.etree.ElementTree as etree
 
 # Local file imports
 import util
@@ -120,17 +119,25 @@ class EPGuidesLookup:
 
   ############################################################################
   # _ExtractDataFromShowHtml
-  # Extracts show data from <html><body><pre>
+  # Extracts show data from html source
+  # Uses line iteration to extract <pre>...</pre> data block rather than xml
+  # because (1) The HTML text can include illegal xml characters (e.g. &)
+  #         (2) Using XML parsing opens up attack opportunity
   ############################################################################
   def _ExtractDataFromShowHtml(self, html):
-    xmlRoot = etree.fromstring(html)
-    for child in xmlRoot:
-      if child.tag == 'body':
-        for subChild in child:
-          if subChild.tag =='pre':
-            # Return text with leading and trailing whitespace stripped
-            return(subChild.text.strip())
-    raise Exception("Show content not found - check EPGuides html formatting")
+    htmlLines = html.splitlines()
+    for count, line in enumerate(htmlLines):
+      if line.strip() == r'<pre>':
+        startLine = count+1
+      if line.strip() == r'</pre>':
+        endLine = count
+
+    try:
+      dataList = htmlLines[startLine:endLine]
+      dataString = '\n'.join(dataList)
+      return dataString.strip()
+    except:
+      raise Exception("Show content not found - check EPGuides html formatting")
 
   ############################################################################
   # _GetEpisodeName
