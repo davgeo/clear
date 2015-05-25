@@ -18,3 +18,19 @@ To install this on Synology NAS the pip package must be installed first:
 * Change directory to get-pip.py directory (e.g. cd /volume1/downloads/)
 * Execute get-pip script: python3 get-pip.py
 * Proceed with requests install as before (python3 -m pip install requests)
+
+-----------------------------------------------------
+
+To run this script:
+
+python3 dm.py --arg1 --arg2
+
+Possible args are:
+  --live      run with live database
+  --reset     resets database
+  --copy      enable copying between file systems
+  --inplace   rename files in place
+  -t, --tags  enable tags on log info
+
+-----------------------------------------------------
+
