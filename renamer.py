@@ -375,7 +375,9 @@ class TVRenamer:
     # ------------------------------------------------------------------------
     showNameMatchDict = {}
     uniqueFileShowList = self._GetUniqueFileShowNames(self._fileList)
-    logzila.Log.Seperator()
+    if len(uniqueFileShowList) > 0:
+      logzila.Log.Seperator()
+
     for fileShowName in uniqueFileShowList:
       showNameMatchDict[fileShowName] = self._GetShowInfo(fileShowName)
       logzila.Log.NewLine()
@@ -397,7 +399,8 @@ class TVRenamer:
     # ------------------------------------------------------------------------
     # Get episode name for all remaining files in valid list
     # ------------------------------------------------------------------------
-    logzila.Log.Seperator()
+    if len(validShowFileList) > 0:
+      logzila.Log.Seperator()
 
     validEpisodeNameFileList = []
 
