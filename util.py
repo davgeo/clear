@@ -40,6 +40,14 @@ def StripSpecialCharacters(string):
   return string
 
 #################################################
+# CheckEmptyResponse
+#################################################
+def CheckEmptyResponse(response):
+  while response.strip() == '':
+    response = logzila.Log.Input("RENAMER", "An empty response was detected - please reenter a valid response: ")
+  return response
+
+#################################################
 # ValidUserResponse
 #################################################
 def ValidUserResponse(response, validList):
