@@ -148,17 +148,10 @@ class TVRenamer:
     if oldPath == newPath:
       return False
 
-    if self._inPlaceRename is False:
-      logzila.Log.Info("RENAMER", "Attempting to add file to TV library")
-    else:
-      logzila.Log.Info("RENAMER", "Attempting to rename files")
-    logzila.Log.IncreaseIndent()
-    logzila.Log.Info("RENAMER", "FROM: {0}".format(oldPath))
-    logzila.Log.Info("RENAMER", "TO:   {0}".format(newPath))
+    logzila.Log.Info("RENAMER", "PROCESSING FILE: {0}".format(oldPath))
 
     if os.path.exists(newPath):
       logzila.Log.Info("RENAMER", "File skipped - file aleady exists in TV library at {0}".format(newPath))
-      logzila.Log.DecreaseIndent()
       return False
 
     newDir = os.path.dirname(newPath)
@@ -209,9 +202,7 @@ class TVRenamer:
     except Exception as ex:
       logzila.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
     else:
-      logzila.Log.Info("RENAMER", "File rename complete".format(oldPath, newPath))
-
-    logzila.Log.DecreaseIndent()
+      logzila.Log.Info("RENAMER", "RENAME COMPLETE: {0}".format(newPath))
 
   ############################################################################
   # _CreateNewSeasonDir
@@ -422,7 +413,7 @@ class TVRenamer:
     renameFileList = []
     skippedFileList = []
 
-    logzila.Log.Info("RENAMER", "Generating library path:\n")
+    logzila.Log.Info("RENAMER", "Generating library paths:\n")
 
     if len(validEpisodeNameFileList) == 0:
       logzila.Log.Info("RENAMER", "No compatible files were detected")
@@ -452,12 +443,18 @@ class TVRenamer:
       if len(renameFileList) == 0:
         logzila.Log.Info("RENAMER", "No renamable files were detected")
       else:
-        logzila.Log.IncreaseIndent()
-        for tvFile in renameFileList:
-          logzila.Log.Info("RENAMER", "{0} to {1}".format(tvFile.fileInfo.origPath, tvFile.fileInfo.newPath))
-        logzila.Log.DecreaseIndent()
+        showName = None
+        renameFileList.sort()
 
-        logzila.Log.NewLine()
+        for tvFile in renameFileList:
+          if showName is None or showName != tvFile.showInfo.showName:
+            showName = tvFile.showInfo.showName
+            logzila.Log.Info("RENAMER", "{0}".format(showName))
+          logzila.Log.IncreaseIndent()
+          logzila.Log.Info("RENAMER", "FROM: {0}".format(tvFile.fileInfo.origPath))
+          logzila.Log.Info("RENAMER", "TO:   {0}".format(tvFile.fileInfo.newPath))
+          logzila.Log.DecreaseIndent()
+          logzila.Log.NewLine()
 
         response = logzila.Log.Input('RENAMER', "***WARNING*** CONTINUE WITH RENAME PROCESS? [y/n]: ")
         response = util.ValidUserResponse(response, ('y','n'))
@@ -465,11 +462,14 @@ class TVRenamer:
         if response == 'n':
           logzila.Log.Info("RENAMER", "Renaming process skipped")
         else:
-          logzila.Log.Info("RENAMER", "Renaming files:\n")
-          logzila.Log.IncreaseIndent()
+          logzila.Log.NewLine()
+          if self._inPlaceRename is False:
+            logzila.Log.Info("RENAMER", "Adding files to TV library:\n")
+          else:
+            logzila.Log.Info("RENAMER", "Renaming files:\n")
           for tvFile in renameFileList:
             self._MoveFileToLibrary(tvFile.fileInfo.origPath, tvFile.fileInfo.newPath)
-          logzila.Log.DecreaseIndent()
+            logzila.Log.NewLine()
 
     # ------------------------------------------------------------------------
     # List skipped files

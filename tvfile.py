@@ -22,6 +22,26 @@ class ShowInfo:
     self.episodeNum = None
     self.episodeName = None
 
+  #################################################
+  # __lt__
+  # define preferred sort order
+  #################################################
+  def __lt__(self, other):
+    if self.showID is None or other.showID is None:
+      return False
+    elif self.showID == other.showID:
+      if self.seasonNum is None or other.seasonNum is None:
+        return False
+      elif self.seasonNum == other.seasonNum:
+        if self.episodeNum is None or other.episodeNum is None:
+          return False
+        else:
+          return self.episodeNum < other.episodeNum
+      else:
+        return self.seasonNum < other.seasonNum
+    else:
+      return self.showName < other.showName
+
 #################################################
 # TVFile
 #################################################
@@ -36,6 +56,13 @@ class TVFile:
     self.fileInfo.showName = None
 
     self.showInfo = ShowInfo()
+
+  #################################################
+  # __lt__
+  # define preferred sort order
+  #################################################
+  def __lt__(self, other):
+    return self.showInfo < other.showInfo
 
   ############################################################################
   # GetShowDetails
