@@ -61,7 +61,13 @@ def ValidUserResponse(response, validList):
 ############################################################################
 # UserAcceptance
 ############################################################################
-def UserAcceptance(matchList, recursiveLookup = True, promptComment = None, promptOnly = False):
+def UserAcceptance(
+  matchList,
+  recursiveLookup = True,
+  promptComment = None,
+  promptOnly = False,
+  xStrOverride = "to skip this selection"
+):
   matchString = ', '.join(matchList)
 
   if len(matchList) == 1:
@@ -81,7 +87,7 @@ def UserAcceptance(matchList, recursiveLookup = True, promptComment = None, prom
   if recursiveLookup:
     prompt = prompt + "nter a different string to look up or e"
 
-  prompt = prompt + "nter 'x' to skip this selection or enter 'exit' to quit this program"
+  prompt = prompt + "nter 'x' {0} or enter 'exit' to quit this program".format(xStrOverride)
 
   if promptComment is None:
     prompt = prompt + ": "

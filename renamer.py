@@ -271,7 +271,7 @@ class TVRenamer:
                     matchDirList.append(dirName)
 
         listDirPrompt = "enter 'ls' to list all items in show directory"
-        userAcceptance = util.UserAcceptance(matchDirList, promptComment = listDirPrompt)
+        userAcceptance = util.UserAcceptance(matchDirList, promptComment = listDirPrompt, xStrOverride = "to create new season directory")
 
         if userAcceptance in matchDirList:
           seasonDirName = userAcceptance
@@ -292,7 +292,7 @@ class TVRenamer:
                 logzila.Log.Info("RENAMER", "Show directory contains: {0}".format(', '.join(dirList)))
             else:
               matchDirList = util.GetBestMatch(dirLookup, dirList)
-              response = util.UserAcceptance(matchDirList, promptComment = listDirPrompt, promptOnly = promptOnly)
+              response = util.UserAcceptance(matchDirList, promptComment = listDirPrompt, promptOnly = promptOnly, xStrOverride = "to create new season directory")
               promptOnly = False
 
               if response in matchDirList:
@@ -312,50 +312,57 @@ class TVRenamer:
     return seasonDirName
 
   ############################################################################
+  # _CreateNewShowDir
+  ############################################################################
+  def _CreateNewShowDir(self, showName):
+    stripedDir = util.StripSpecialCharacters(showName)
+    response = logzila.Log.Input('RENAMER', "Enter 'y' to accept this directory, 'x' to skip this show or enter a new directory to use: ")
+    if response.lower() == 'x':
+      return None
+    elif response.lower() == 'y':
+      return stripedDir
+    else:
+      return response
+
+  ############################################################################
   # _GenerateLibraryPath
   #
   ############################################################################
   def _GenerateLibraryPath(self, tvFile, libraryDir):
-    # Look up base show name directory in database
     logzila.Log.Info("RENAMER", "Looking up library directory in database for show: {0}".format(tvFile.showInfo.showName))
     logzila.Log.IncreaseIndent()
     showID, showName, showDir = self._db.SearchTVLibrary(showName = tvFile.showInfo.showName)[0]
 
     if showDir is None:
       logzila.Log.Info("RENAMER", "No directory match found in database - looking for best match in library directory: {0}".format(libraryDir))
-      # Parse TV dir for best match
       dirList = os.listdir(libraryDir)
-      promptOnly = False
+      listDir = False
+      matchName = tvFile.showInfo.showName
       while showDir is None:
-        matchDirList = util.GetBestMatch(tvFile.showInfo.showName, dirList)
-
         if len(dirList) == 0:
           logzila.Log.Info("RENAMER", "TV Library directory is empty")
           response = None
         else:
-          # User input to accept or add alternate
+          if listDir is True:
+            logzila.Log.Info("RENAMER", "TV library directory contains: {0}".format(', '.join(dirList)))
+          else:
+            matchDirList = util.GetBestMatch(matchName, dirList)
+
           listDirPrompt = "enter 'ls' to list all items in TV library directory"
-          response = util.UserAcceptance(matchDirList, promptComment = listDirPrompt, promptOnly = promptOnly)
-          promptOnly = False
+          response = util.UserAcceptance(matchDirList, promptComment = listDirPrompt, promptOnly = listDir, xStrOverride = "to create new show directory")
+          listDir = False
 
         if response in matchDirList:
           showDir = response
         elif response is None:
-          stripedDir = util.StripSpecialCharacters(tvFile.showInfo.showName)
-          response = logzila.Log.Input('RENAMER', "Enter 'y' to accept this directory, 'x' to skip this show or enter a new directory to use: ")
-          if response.lower() == 'x':
+          showDir = self._CreateNewShowDir(tvFile.showInfo.showName)
+          if showDir is None:
             logzila.Log.DecreaseIndent()
             return tvFile
-          elif response.lower() == 'y':
-            showDir = stripedDir
-          else:
-            showDir = response
         elif response.lower() == 'ls':
-          promptOnly = True
-          if len(dirList) == 0:
-            logzila.Log.Info("RENAMER", "TV library directory is empty")
-          else:
-            logzila.Log.Info("RENAMER", "TV library directory contains: {0}".format(', '.join(dirList)))
+          listDir = True
+        else:
+          matchName = response
 
       self._db.UpdateShowDirInTVLibrary(showID, showDir)
 
