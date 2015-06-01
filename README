@@ -25,12 +25,9 @@ To run this script:
 
 python3 dm.py --arg1 --arg2
 
-Possible args are:
-  --live      run with live database
-  --reset     resets database
-  --copy      enable copying between file systems
-  --inplace   rename files in place
-  -t, --tags  enable tags on log info
+Use --help to see all available arguments
+
+i.e. py3 dm.py --help
 
 -----------------------------------------------------
 

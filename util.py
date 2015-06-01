@@ -32,11 +32,11 @@ def CheckPathExists(path):
 #
 ############################################################################
 def StripSpecialCharacters(string):
-  logzila.Log.Info("UTIL", "Stripping any special characters from {0}".format(string))
+  logzila.Log.Info("UTIL", "Stripping any special characters from {0}".format(string), verbosity=logzila.Verbosity.MINIMAL)
   string = re.sub('[&]', 'and', string)
   string = re.sub('[@#$%^&*{};:,/<>?\|`~=+]', '', string)
   string = re.sub('\s\s+', ' ', string)
-  logzila.Log.Info("UTIL", "New string is: {0}".format(string))
+  logzila.Log.Info("UTIL", "New string is: {0}".format(string), verbosity=logzila.Verbosity.MINIMAL)
   return string
 
 #################################################
@@ -176,7 +176,7 @@ def GetBestStringMatchValue(string1, string2):
 ############################################################################
 def WebLookup(url, urlQuery=None, utf8=True):
   # Look up webpage at given url with optional query string
-  logzila.Log.Info("UTIL", "Looking up info from URL:{0} with QUERY:{1})".format(url, urlQuery))
+  logzila.Log.Info("UTIL", "Looking up info from URL:{0} with QUERY:{1})".format(url, urlQuery), verbosity=logzila.Verbosity.MINIMAL)
   response = requests.get(url, params=urlQuery)
   if utf8 is True:
     response.encoding = 'utf-8'

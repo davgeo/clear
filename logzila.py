@@ -1,9 +1,17 @@
 ''' LOGGING '''
 # Python default package imports
-
+from enum import Enum
 # Custom Python package imports
 
 # Local file imports
+
+#################################################
+# Verbosity
+#################################################
+class Verbosity(Enum):
+  MINIMAL = 1
+  NORMAL = 2
+  ALWAYS = 3
 
 #################################################
 # Log
@@ -13,7 +21,7 @@ class Log:
   maxTagSize = 8
   indent = 0
   indentSize = '  '
-  verbosity = 100
+  verbosityThreshold = Verbosity.NORMAL
 
   ############################################################################
   # IncreaseIndent
@@ -49,8 +57,15 @@ class Log:
   ############################################################################
   # Info
   ############################################################################
-  def Info(tag, string):
-    print(Log.CreateString(tag, string))
+  def Info(tag, string, verbosity=Verbosity.ALWAYS):
+    if(verbosity.value >= Log.verbosityThreshold.value):
+      print(Log.CreateString(tag, string))
+
+  ############################################################################
+  # Error
+  ############################################################################
+  def Error(tag, string):
+    Log.Info(tag, "ERROR: " + string, verbosity=Verbosity.ALWAYS)
 
   ############################################################################
   # Input

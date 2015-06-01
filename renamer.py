@@ -248,9 +248,9 @@ class TVRenamer:
     # Look up existing season folder from database
     seasonDirName = self._db.SearchSeasonDirTable(showID, seasonNum)
 
-    logzila.Log.Info("RENAMER", "Found season directory match from database: {0}".format(seasonDirName))
-
-    if seasonDirName is None:
+    if seasonDirName is not None:
+      logzila.Log.Info("RENAMER", "Found season directory match from database: {0}".format(seasonDirName))
+    else:
       # Look up existing season folder in show directory
       logzila.Log.Info("RENAMER", "Looking up season directory (Season {0}) in {1}".format(seasonNum, showDir))
       if os.path.isdir(showDir) is False:
@@ -316,6 +316,7 @@ class TVRenamer:
   ############################################################################
   def _CreateNewShowDir(self, showName):
     stripedDir = util.StripSpecialCharacters(showName)
+    logzila.Log.Info("RENAMER", "Suggested show directory name is: '{0}'".format(stripedDir))
     response = logzila.Log.Input('RENAMER', "Enter 'y' to accept this directory, 'x' to skip this show or enter a new directory to use: ")
     if response.lower() == 'x':
       return None
@@ -352,15 +353,15 @@ class TVRenamer:
           response = util.UserAcceptance(matchDirList, promptComment = listDirPrompt, promptOnly = listDir, xStrOverride = "to create new show directory")
           listDir = False
 
-        if response in matchDirList:
-          showDir = response
-        elif response is None:
+        if response is None:
           showDir = self._CreateNewShowDir(tvFile.showInfo.showName)
           if showDir is None:
             logzila.Log.DecreaseIndent()
             return tvFile
         elif response.lower() == 'ls':
           listDir = True
+        elif response in matchDirList:
+          showDir = response
         else:
           matchName = response
 
@@ -424,6 +425,8 @@ class TVRenamer:
 
     validEpisodeNameFileList = []
 
+    logzila.Log.Info("RENAMER", "Looking up episode names:\n")
+
     for tvFile in validShowFileList:
       tvFile.showInfo.episodeName = self._guide.EpisodeNameLookUp(tvFile.showInfo.showName, tvFile.showInfo.seasonNum, tvFile.showInfo.episodeNum)
 
@@ -431,6 +434,8 @@ class TVRenamer:
         incompatibleFileList.append(tvFile)
       else:
         validEpisodeNameFileList.append(tvFile)
+
+      logzila.Log.Info("RENAMER", "{0} S{1}E{2}: {3}".format(tvFile.showInfo.showName, tvFile.showInfo.seasonNum, tvFile.showInfo.episodeNum, tvFile.showInfo.episodeName))
 
     logzila.Log.NewLine()
 

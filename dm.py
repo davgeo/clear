@@ -168,6 +168,7 @@ class DownloadManager:
     parser.add_argument('--reset', help='resets database', action="store_true")
     parser.add_argument('--copy', help='enable copying between file systems', action="store_true")
     parser.add_argument('--inplace', help='rename files in place', action="store_true")
+    parser.add_argument('--debug', help='enable full logging', action="store_true")
     parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
     args = parser.parse_args()
 
@@ -191,6 +192,9 @@ class DownloadManager:
 
     if args.tags:
       logzila.Log.tagsEnabled = 1
+
+    if args.debug:
+      logzila.Log.verbosityThreshold = logzila.Verbosity.MINIMAL
 
   ############################################################################
   # Run
