@@ -28,6 +28,33 @@ class DownloadManager:
     self._databasePath = 'test.db'
     self._inPlaceRename = False
     self._crossSystemCopyEnabled = False
+    self._dbUpdate = False
+
+  ############################################################################
+  # _UserUpdateConfigDir
+  ############################################################################
+  def _UserUpdateConfigValue(self, configKey, strDescriptor, dbConfigValue = None):
+    newConfigValue = None
+
+    if dbConfigValue is None:
+      prompt = "Enter new {0} or 'x' to exit: ".format(strDescriptor)
+    else:
+      prompt = "Enter 'y' to use existing {0}, enter a new {0} or 'x' to exit: ".format(strDescriptor)
+
+    while newConfigValue is None:
+      response = logzila.Log.Input("DM", prompt)
+
+      if response.lower() == 'x':
+        sys.exit(0)
+      elif dbConfigValue is not None and response.lower() == 'y':
+        newConfigValue = dbConfigValue
+      elif os.path.isdir(response):
+        newConfigValue = os.path.abspath(response)
+        self._db.SetConfigValue(configKey, newConfigValue)
+      else:
+        logzila.Log.Info("DM", "{0} is not recognised as a directory".format(response))
+
+    return newConfigValue
 
   ############################################################################
   # _GetConfigDir
@@ -36,20 +63,13 @@ class DownloadManager:
     logzila.Log.Info("DM", "Loading {0} from database:".format(strDescriptor))
     logzila.Log.IncreaseIndent()
     configValue = self._db.GetConfigValue(configKey)
+
     if configValue is None:
       logzila.Log.Info("DM", "No {0} exists in database".format(strDescriptor))
-
-      while configValue is None:
-        prompt = "Enter new {0} or 'x' to exit: ".format(strDescriptor)
-        response = logzila.Log.Input("DM", prompt)
-
-        if response.lower() == 'x':
-          sys.exit(0)
-        elif os.path.isdir(response):
-          configValue = os.path.abspath(response)
-          self._db.SetConfigValue(configKey, configValue)
-        else:
-          logzila.Log.Info("DM", "{0} is not recognised as a directory".format(response))
+      configValue = self._UserUpdateConfigValue(configKey, strDescriptor)
+    elif self._dbUpdate is True:
+      logzila.Log.Info("DM", "Got {0} {1} from database".format(strDescriptor, configValue))
+      configValue = self._UserUpdateConfigValue(configKey, strDescriptor, configValue)
 
     if os.path.isdir(configValue):
       logzila.Log.Info("DM", "Using {0} {1}".format(strDescriptor, configValue))
@@ -60,40 +80,99 @@ class DownloadManager:
       sys.exit(0)
 
   ############################################################################
+  # _UserUpdateSupportedFormats
+  ############################################################################
+  def _UserUpdateSupportedFormats(self, origFormatList = None):
+    if origFormatList is None:
+      formatList = []
+    else:
+      formatList = list(origFormatList)
+
+    inputDone = None
+    while inputDone is None:
+      prompt = "Enter new format (e.g. .mp4, .avi), " \
+                             "'r' to reset format list, " \
+                             "'f' to finish or " \
+                             "'x' to exit: "
+      response = logzila.Log.Input("DM", prompt)
+
+      if response.lower() == 'x':
+        sys.exit(0)
+      elif response.lower() == 'f':
+        inputDone = 1
+      elif response.lower() == 'r':
+        formatList = []
+      else:
+        if response is not None:
+          if(response[0] != '.'):
+            response = '.' + response
+          formatList.append(response)
+
+    formatList = set(formatList)
+    origFormatList = set(origFormatList)
+
+    if formatList != origFormatList:
+      self._db.PurgeSupportedFormats()
+      for fileFormat in formatList:
+        self._db.AddSupportedFormat(fileFormat)
+
+    return formatList
+
+  ############################################################################
   # _GetSupportedFormats
   ############################################################################
   def _GetSupportedFormats(self):
     logzila.Log.Info("DM", "Loading supported formats from database:")
     logzila.Log.IncreaseIndent()
     formatList = self._db.GetSupportedFormats()
-    if formatList is None:
-      logzila.Log.Info("DM", "No format list exists in database")
-      inputDone = None
-      formatList = []
-      while inputDone is None:
-        prompt = "Enter new format (e.g. .mp4, .avi)," \
-                             "'r' to reset format list, " \
-                             "'f' to finish or " \
-                             "'x' to exit: "
-        response = logzila.Log.Input("DM", prompt)
 
-        if response.lower() == 'x':
-          sys.exit(0)
-        elif response.lower() == 'f':
-          inputDone = 1
-        elif response.lower() == 'r':
-          formatList = []
-        else:
-          if response is not None:
-            if(response[0] != '.'):
-              response = '.' + response
-            formatList.append(response)
-      formatList = set(formatList)
-      for fileFormat in formatList:
-        self._db.AddSupportedFormat(fileFormat)
+    if formatList is None:
+      logzila.Log.Info("DM", "No supported formats exist in database")
+      formatList = self._UserUpdateSupportedFormats()
+    elif self._dbUpdate is True:
+      logzila.Log.Info("DM", "Got supported formats from database: {0}".format(formatList))
+      formatList = self._UserUpdateSupportedFormats(formatList)
+
     logzila.Log.Info("DM", "Using supported formats: {0}".format(formatList))
     logzila.Log.DecreaseIndent()
     return formatList
+
+  ############################################################################
+  # _UserUpdateIgnoredDirs
+  ############################################################################
+  def _UserUpdateIgnoredDirs(self, origIgnoredDirs = None):
+    if origIgnoredDirs is None:
+      ignoredDirs = []
+    else:
+      ignoredDirs = list(origIgnoredDirs)
+
+    inputDone = None
+    while inputDone is None:
+      prompt = "Enter new directory to ignore (e.g. DONE), " \
+                           "'r' to reset directory list, " \
+                           "'f' to finish or " \
+                           "'x' to exit: "
+      response = logzila.Log.Input("DM", prompt)
+
+      if response.lower() == 'x':
+        sys.exit(0)
+      elif response.lower() == 'f':
+        inputDone = 1
+      elif response.lower() == 'r':
+        ignoredDirs = []
+      else:
+        if response is not None:
+          ignoredDirs.append(response)
+
+    ignoredDirs = set(ignoredDirs)
+    origIgnoredDirs = set(origIgnoredDirs)
+
+    if ignoredDirs != origIgnoredDirs:
+      self._db.PurgeIgnoredDirs()
+      for ignoredDir in ignoredDirs:
+        self._db.AddIgnoredDir(ignoredDir)
+
+    return ignoredDirs
 
   ############################################################################
   # GetIgnoredDirs
@@ -102,29 +181,14 @@ class DownloadManager:
     logzila.Log.Info("DM", "Loading ignored directories from database:")
     logzila.Log.IncreaseIndent()
     ignoredDirs = self._db.GetIgnoredDirs()
+
     if ignoredDirs is None:
       logzila.Log.Info("DM", "No ignored directories exist in database")
-      inputDone = None
-      ignoredDirs = []
-      while inputDone is None:
-        prompt = "Enter new directory to ignore (e.g. DONE)," \
-                             "'r' to reset directory list, " \
-                             "'f' to finish or " \
-                             "'x' to exit: "
-        response = logzila.Log.Input("DM", prompt)
+      ignoredDirs = self._UserUpdateIgnoredDirs()
+    elif self._dbUpdate is True:
+      logzila.Log.Info("DM", "Got ignored directories from database: {0}".format(ignoredDirs))
+      ignoredDirs = self._UserUpdateIgnoredDirs(ignoredDirs)
 
-        if response.lower() == 'x':
-          sys.exit(0)
-        elif response.lower() == 'f':
-          inputDone = 1
-        elif response.lower() == 'r':
-          ignoredDirs = []
-        else:
-          if response is not None:
-            ignoredDirs.append(response)
-      ignoredDirs = set(ignoredDirs)
-      for ignoredDir in ignoredDirs:
-        self._db.AddIgnoredDir(ignoredDir)
     logzila.Log.Info("DM", "Using ignored directories: {0}".format(ignoredDirs))
     logzila.Log.DecreaseIndent()
     return ignoredDirs
@@ -170,6 +234,7 @@ class DownloadManager:
     parser.add_argument('--inplace', help='rename files in place', action="store_true")
     parser.add_argument('--debug', help='enable full logging', action="store_true")
     parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
+    parser.add_argument('--update_db', help='provides option to update existing database fields', action="store_true")
     args = parser.parse_args()
 
     if args.live:
@@ -195,6 +260,9 @@ class DownloadManager:
 
     if args.debug:
       logzila.Log.verbosityThreshold = logzila.Verbosity.MINIMAL
+
+    if args.update_db:
+      self._dbUpdate = True
 
   ############################################################################
   # Run

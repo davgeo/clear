@@ -45,6 +45,14 @@ class RenamerDB:
     self._QueryDatabase("DROP TABLE {0}".format(tableName))
 
   #################################################
+  # _PurgeTable
+  # Deletes all rows without dropping table
+  #################################################
+  def _PurgeTable(self, tableName):
+    logzila.Log.Info("DB", "Deleting all entries from table {0}".format(tableName), verbosity=self.logVerbosity)
+    self._QueryDatabase("DELETE FROM {0}".format(tableName))
+
+  #################################################
   # SetConfigValue
   #################################################
   def SetConfigValue(self, fieldName, value):
@@ -59,8 +67,8 @@ class RenamerDB:
       logzila.Log.Info("DB", "Adding {0}={1} to database config table".format(fieldName, value), verbosity=self.logVerbosity)
       self._QueryDatabase("INSERT INTO Config VALUES (?,?)", (fieldName, value))
     else:
-      logzila.Log.Info("DB", "Updating {0} in database config table from {1} to {2}".format(fieldName, currentEntry, value), verbosity=self.logVerbosity)
-      self._QueryDatabase("UPDATE Config SET Value=?, WHERE Name=?", (value, fieldName))
+      logzila.Log.Info("DB", "Updating {0} in database config table from {1} to {2}".format(fieldName, currentConfigValue, value), verbosity=self.logVerbosity)
+      self._QueryDatabase("UPDATE Config SET Value=? WHERE Name=?", (value, fieldName))
 
   #################################################
   # GetConfigValue
@@ -128,6 +136,12 @@ class RenamerDB:
     return formatList
 
   #################################################
+  # PurgeSupportedFormats
+  #################################################
+  def PurgeSupportedFormats(self):
+    self._PurgeTable("SupportedFormat")
+
+  #################################################
   # AddIgnoredDir
   #################################################
   def AddIgnoredDir(self, ignoredDir):
@@ -139,6 +153,12 @@ class RenamerDB:
   def GetIgnoredDirs(self):
     dirList = self._GetFromSingleColumnTable("IgnoredDir")
     return dirList
+
+  #################################################
+  # PurgeIgnoredDirs
+  #################################################
+  def PurgeIgnoredDirs(self):
+    self._PurgeTable("IgnoredDir")
 
   #################################################
   # AddShowToTVLibrary
