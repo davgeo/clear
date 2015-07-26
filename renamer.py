@@ -203,15 +203,7 @@ class TVRenamer:
               err = ex3.args[0]
               logzila.Log.Info("RENAMER", "File copy failed - Shutil Error: {0}".format(err))
             else:
-              logzila.Log.Info("RENAMER", "Moving original file to PROCESSED directory")
-              processedDir = os.path.join(origFileDir, 'PROCESSED')
-              os.makedirs(processedDir, exist_ok=True)
-
-              try:
-                shutil.move(renameFilePath, processedDir)
-              except shutil.Error as ex4:
-                err = ex4.args[0]
-                logzila.Log.Info("RENAMER", "Move to PROCESSED directory failed - Shutil Error: {0}".format(err))
+              util.ArchiveProcessedFile(renameFilePath)
           else:
             logzila.Log.Info("RENAMER", "File copy skipped - copying between file systems is disabled (enabling this functionality is slow)")
       else:

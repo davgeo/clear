@@ -11,6 +11,7 @@ import renamer
 import database
 import util
 import logzila
+import extract
 
 #################################################
 # DownloadManager
@@ -25,10 +26,11 @@ class DownloadManager:
     self._tvDir = None
     self._supportedFormatsList = []
     self._ignoredDirsList = []
-    self._databasePath = 'test.db'
+    self._databasePath = 'live.db'
     self._inPlaceRename = False
     self._crossSystemCopyEnabled = False
     self._dbUpdate = False
+    self._enableExtract = False
 
   ############################################################################
   # _UserUpdateConfigDir
@@ -228,17 +230,18 @@ class DownloadManager:
   ############################################################################
   def _GetArgs(self):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--live', help='run with live database', action="store_true")
+    parser.add_argument('--test', help='run with test database', action="store_true")
     parser.add_argument('--reset', help='resets database', action="store_true")
     parser.add_argument('--copy', help='enable copying between file systems', action="store_true")
     parser.add_argument('--inplace', help='rename files in place', action="store_true")
     parser.add_argument('--debug', help='enable full logging', action="store_true")
     parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
     parser.add_argument('--update_db', help='provides option to update existing database fields', action="store_true")
+    parser.add_argument('--extract', help='enable extracting of rar files', action="store_true")
     args = parser.parse_args()
 
-    if args.live:
-      self._databasePath = 'live.db'
+    if args.test:
+      self._databasePath = 'test.db'
 
     if args.reset:
       logzila.Log.Info("DM", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE {0}".format(self._databasePath))
@@ -264,6 +267,9 @@ class DownloadManager:
     if args.update_db:
       self._dbUpdate = True
 
+    if args.extract:
+      self._enableExtract = True
+
   ############################################################################
   # Run
   # Get all tv files in download directory
@@ -275,6 +281,18 @@ class DownloadManager:
     self._db = database.RenamerDB(self._databasePath)
 
     self._GetDatabaseConfig()
+
+    if self._enableExtract:
+      logzila.Log.Seperator()
+
+      extractFileList = []
+      logzila.Log.Info("DM", "Parsing download directory for compressed files")
+      logzila.Log.IncreaseIndent()
+      extract.GetCompressedFilesInDir(self._downloadDir, extractFileList, self._ignoredDirsList)
+      logzila.Log.DecreaseIndent()
+
+      logzila.Log.Seperator()
+      extract.Extract(extractFileList, self._supportedFormatsList)
 
     logzila.Log.Seperator()
 

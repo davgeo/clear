@@ -6,6 +6,7 @@ import glob
 import os
 import re
 import sys
+import shutil
 
 # Python custom package imports
 import requests
@@ -186,6 +187,39 @@ def WebLookup(url, urlQuery=None, utf8=True):
     response.raise_for_status()
 
 ############################################################################
+# ArchiveProcessedFile
+# Move file to archive directory (by default this is 'PROCESSED')
+############################################################################
+def ArchiveProcessedFile(filePath, archiveDir = 'PROCESSED'):
+  targetDir = os.path.join(os.path.dirname(filePath), archiveDir)
+  logzila.Log.Info("UTIL", "Moving file to archive directory:")
+  logzila.Log.IncreaseIndent()
+  logzila.Log.Info("UTIL", "FROM: {0}".format(filePath))
+  logzila.Log.Info("UTIL", "TO:   {0}".format(os.path.join(targetDir, os.path.basename(filePath))))
+  logzila.Log.DecreaseIndent()
+  os.makedirs(targetDir, exist_ok=True)
+  try:
+    shutil.move(filePath, targetDir)
+  except shutil.Error as ex4:
+    err = ex4.args[0]
+    logzila.Log.Info("UTIL", "Move to archive directory failed - Shutil Error: {0}".format(err))
+
+############################################################################
+# ArchiveProcessedFileList
+# Move all files to archive directory (by default this is 'PROCESSED')
+############################################################################
+def ArchiveProcessedFileList(fileList, archiveDir = 'PROCESSED'):
+  for filePath in fileList:
+    ArchiveProcessedFile(filePath, archiveDir)
+
+############################################################################
+# FileExtensionMatch
+# Check whether the file matches any of the supported file types
+############################################################################
+def FileExtensionMatch(filePath, supportedFileTypeList):
+  return (os.path.splitext(filePath)[1] in supportedFileTypeList)
+
+############################################################################
 # GetSupportedFilesInDir
 # Get all supported files from given directory folder
 ############################################################################
@@ -193,7 +227,7 @@ def GetSupportedFilesInDir(fileDir, fileList, supportedFormatList, ignoreDirList
   logzila.Log.Info("UTIL", "Parsing file directory: {0}".format(fileDir))
   if os.path.isdir(fileDir) is True:
     for globPath in glob.glob(os.path.join(fileDir, '*')):
-      if os.path.splitext(globPath)[1] in supportedFormatList:
+      if FileExtensionMatch(globPath, supportedFormatList):
         newFile = tvfile.TVFile(globPath)
         if newFile.GetShowDetails():
           fileList.append(newFile)
