@@ -14,6 +14,9 @@ import rarfile
 import logzila
 import util
 
+# Update rarfile variables
+rarfile.PATH_SEP = os.sep
+
 ############################################################################
 # GetCompressedFilesInDir
 # Get all supported files from given directory folder
@@ -59,11 +62,18 @@ def Extract(fileList, tvFormatList):
       for f in rf.infolist():
         if util.FileExtensionMatch(f.filename, tvFormatList):
           logzila.Log.Info("EXTRACT", "Extracting file: {0}".format(f.filename))
+
+          extractPath = os.path.join(dirPath, f.filename)
+          targetPath = os.path.join(dirPath, os.path.basename(f.filename))
+
           try:
             rf.extract(f, dirPath)
           except Exception as ex:
             logzila.Log.Info("EXTRACT", "Extract failed - check that unrar is installed [Exception ({0}): {1}]\n".format(ex.args[0], ex.args[1]))
           else:
+            if extractPath != targetPath:
+              os.rename(extractPath, targetPath)
+              util.RemoveEmptyDirectoryTree(os.path.dirname(extractPath))
             fileExtracted = True
 
       if fileExtracted is True:

@@ -16,6 +16,24 @@ import tvfile
 import logzila
 
 ############################################################################
+# RemoveEmptyDirectoryTree
+# Delete tree of empty directories
+############################################################################
+def RemoveEmptyDirectoryTree(path, silent = False, recursion = 0):
+  if not silent and recursion is 0:
+    logzila.Log.Info("UTIL", "Starting removal of empty directory tree at: {0}".format(path))
+  try:
+    os.rmdir(path)
+  except OSError:
+    if not silent:
+      logzila.Log.Info("UTIL", "Removal of empty directory tree terminated at: {0}".format(path))
+    return
+  else:
+    if not silent:
+      logzila.Log.Info("UTIL", "Directory deleted: {0}".format(path))
+    RemoveEmptyDirectoryTree(os.path.dirname(path), silent, recursion + 1)
+
+############################################################################
 # CheckPathExists
 #
 ############################################################################
