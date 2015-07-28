@@ -38,7 +38,7 @@ def MultipartArchiving(otherPartFilePath, firstPartExtractList, otherPartSkipped
 
   if baseFileName in firstPartExtractList:
     util.ArchiveProcessedFile(otherPartFilePath)
-  else:
+  elif otherPartFilePath not in otherPartSkippedList:
     otherPartSkippedList.append(otherPartFilePath)
 
 ############################################################################
