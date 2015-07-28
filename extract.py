@@ -27,6 +27,19 @@ def GetCompressedFilesInDir(fileDir, fileList, ignoreDirList, supportedFormatLis
     for globPath in glob.glob(os.path.join(fileDir, '*')):
       if os.path.splitext(globPath)[1] in supportedFormatList:
         fileList.append(globPath)
+        # TODO: Recursive lookup for nested directory tree
+
+############################################################################
+# MultipartArchiving
+# Archive all parts of multi-part archive only when extracted via part1
+############################################################################
+def MultipartArchiving(otherPartFilePath, firstPartExtractList, otherPartSkippedList):
+  baseFileName = re.findall("(.+?)[.]part.+?rar", otherPartFilePath)[0]
+
+  if baseFileName in firstPartExtractList:
+    util.ArchiveProcessedFile(otherPartFilePath)
+  else:
+    otherPartSkippedList.append(otherPartFilePath)
 
 ############################################################################
 # main
@@ -39,9 +52,8 @@ def Extract(fileList, tvFormatList):
     logzila.Log.DecreaseIndent()
     return
 
-  archiveList = []
-  multiPartExtractedList = []
-  multiPartSkippedList = []
+  firstPartExtractList = []
+  otherPartSkippedList = []
   for filePath in fileList:
     logzila.Log.Info("EXTRACT", "{0}".format(filePath))
     logzila.Log.IncreaseIndent()
@@ -50,8 +62,8 @@ def Extract(fileList, tvFormatList):
     except ImportError:
       logzila.Log.Info("EXTRACT", "Unable to extract - Python needs the rarfile package to be installed (see README for more details)")
     except rarfile.NeedFirstVolume:
-      multiPartSkippedList.append(filePath)
       logzila.Log.Info("EXTRACT", "File skipped - this is not the first part of the RAR archive")
+      MultipartArchiving(filePath, firstPartExtractList, otherPartSkippedList)
     except Exception as ex:
       logzila.Log.Info("EXTRACT", "Unable to extract - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
     else:
@@ -66,38 +78,37 @@ def Extract(fileList, tvFormatList):
           extractPath = os.path.join(dirPath, f.filename)
           targetPath = os.path.join(dirPath, os.path.basename(f.filename))
 
-          try:
-            rf.extract(f, dirPath)
-          except Exception as ex:
-            logzila.Log.Info("EXTRACT", "Extract failed - check that unrar is installed [Exception ({0}): {1}]\n".format(ex.args[0], ex.args[1]))
-          else:
-            if extractPath != targetPath:
-              os.rename(extractPath, targetPath)
-              util.RemoveEmptyDirectoryTree(os.path.dirname(extractPath))
+          if os.path.isfile(targetPath):
+            logzila.Log.Info("EXTRACT", "Extraction skipped - file already exists at target: {0}".format(targetPath))
             fileExtracted = True
+          elif os.path.isfile(extractPath):
+            logzila.Log.Info("EXTRACT", "Extraction skipped - file already exists at extract directory: {0}".format(extractPath))
+            fileExtracted = True
+          else:
+            try:
+              rf.extract(f, dirPath)
+            except BaseException as ex:
+              logzila.Log.Info("EXTRACT", "Extract failed - Exception: {0}".format(ex))
+            else:
+              fileExtracted = True
+
+          if os.path.isfile(extractPath) and not os.path.isfile(targetPath):
+            os.rename(extractPath, targetPath)
+            util.RemoveEmptyDirectoryTree(os.path.dirname(extractPath))
 
       if fileExtracted is True:
-        archiveList.append(filePath)
+        util.ArchiveProcessedFile(filePath)
+
         try:
           firstPartFileName = re.findall('(.+?)[.]part1[.]rar', filePath)[0]
         except IndexError:
           pass
         else:
-          multiPartExtractedList.append(firstPartFileName)
+          firstPartExtractList.append(firstPartFileName)
+          for filePath in otherPartSkippedList:
+            MultipartArchiving(filePath, firstPartExtractList, otherPartSkippedList)
     finally:
       logzila.Log.DecreaseIndent()
-
-  logzila.Log.DecreaseIndent()
-  logzila.Log.NewLine()
-
-  logzila.Log.Info("EXTRACT", "Moving extracted archives to processed directory")
-  logzila.Log.IncreaseIndent()
-  for filePath in multiPartSkippedList:
-    baseFileName = re.findall("(.+?)[.]part.+?rar", filePath)[0]
-    if baseFileName in multiPartExtractedList:
-      archiveList.append(filePath)
-
-  util.ArchiveProcessedFileList(archiveList)
   logzila.Log.DecreaseIndent()
 
 ############################################################################
