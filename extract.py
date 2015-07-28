@@ -33,13 +33,19 @@ def GetCompressedFilesInDir(fileDir, fileList, ignoreDirList, supportedFormatLis
 # MultipartArchiving
 # Archive all parts of multi-part archive only when extracted via part1
 ############################################################################
-def MultipartArchiving(otherPartFilePath, firstPartExtractList, otherPartSkippedList):
-  baseFileName = re.findall("(.+?)[.]part.+?rar", otherPartFilePath)[0]
+def MultipartArchiving(firstPartExtractList, otherPartSkippedList, otherPartFilePath = None):
+  if otherPartFilePath is None:
+    for filePath in otherPartSkippedList:
+      MultipartArchiving(firstPartExtractList, otherPartSkippedList, filePath)
+  else:
+    baseFileName = re.findall("(.+?)[.]part.+?rar", otherPartFilePath)[0]
 
-  if baseFileName in firstPartExtractList:
-    util.ArchiveProcessedFile(otherPartFilePath)
-  elif otherPartFilePath not in otherPartSkippedList:
-    otherPartSkippedList.append(otherPartFilePath)
+    if baseFileName in firstPartExtractList:
+      util.ArchiveProcessedFile(otherPartFilePath)
+      if otherPartFilePath in otherPartSkippedList:
+        otherPartSkippedList.remove(otherPartFilePath)
+    elif otherPartFilePath not in otherPartSkippedList:
+      otherPartSkippedList.append(otherPartFilePath)
 
 ############################################################################
 # main
@@ -63,7 +69,7 @@ def Extract(fileList, tvFormatList):
       logzila.Log.Info("EXTRACT", "Unable to extract - Python needs the rarfile package to be installed (see README for more details)")
     except rarfile.NeedFirstVolume:
       logzila.Log.Info("EXTRACT", "File skipped - this is not the first part of the RAR archive")
-      MultipartArchiving(filePath, firstPartExtractList, otherPartSkippedList)
+      MultipartArchiving(firstPartExtractList, otherPartSkippedList, filePath)
     except Exception as ex:
       logzila.Log.Info("EXTRACT", "Unable to extract - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
     else:
@@ -105,8 +111,8 @@ def Extract(fileList, tvFormatList):
           pass
         else:
           firstPartExtractList.append(firstPartFileName)
-          for filePath in otherPartSkippedList:
-            MultipartArchiving(filePath, firstPartExtractList, otherPartSkippedList)
+          MultipartArchiving(firstPartExtractList, otherPartSkippedList)
+
     finally:
       logzila.Log.DecreaseIndent()
   logzila.Log.DecreaseIndent()
