@@ -87,7 +87,7 @@ class TVFile:
         self.showInfo.seasonNum = "0{0}".format(self.showInfo.seasonNum)
       if len(self.showInfo.episodeNum) == 1:
         self.showInfo.episodeNum = "0{0}".format(self.showInfo.episodeNum)
-      self.fileInfo.showName = re.findall("(.+?)[_.-?][sS][0-9]+[eE][0-9]+", fileName)[0]
+      self.fileInfo.showName = re.findall("(.+?)[_.-]?\s?[sS][0-9]+[eE][0-9]+", fileName)[0]
       return(True)
 
   ############################################################################
