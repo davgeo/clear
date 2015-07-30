@@ -70,8 +70,8 @@ def Extract(fileList, tvFormatList):
     except rarfile.NeedFirstVolume:
       logzila.Log.Info("EXTRACT", "File skipped - this is not the first part of the RAR archive")
       MultipartArchiving(firstPartExtractList, otherPartSkippedList, filePath)
-    except Exception as ex:
-      logzila.Log.Info("EXTRACT", "Unable to extract - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
+    except BaseException as ex:
+      logzila.Log.Info("EXTRACT", "Unable to extract - Exception: {0}".format(ex))
     else:
       # TODO: Check for password requirement with user input
       dirPath = os.path.dirname(filePath)
