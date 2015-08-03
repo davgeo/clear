@@ -21,6 +21,7 @@ class ShowInfo:
     self.seasonNum = None
     self.episodeNum = None
     self.episodeName = None
+    self.multiPartEpisodeNumbers = []
 
   #################################################
   # __lt__
@@ -72,23 +73,60 @@ class TVFile:
   ############################################################################
   def GetShowDetails(self):
     fileName = os.path.splitext(os.path.basename(self.fileInfo.origPath))[0]
-    match = re.findall("[sS]([0-9]+)[eE]([0-9]+)", fileName)
-    match = set(match) # Eliminate any duplicate matches
 
-    if len(match) != 1:
-      if len(match) == 0:
-        logzila.Log.Info("TVFILE", "Incompatible filename no season and episode match detected: {0}".format(self.fileInfo.origPath))
-      else:
-        logzila.Log.Info("TVFILE", "Incompatible filename multiple different season and episode matches detected: {0}".format(self.fileInfo.origPath))
-      return(False)
+    # Episode Number
+    episodeNumSet = set(re.findall("[xXeE]([0-9]+)", fileName))
+    episodeNumList = [int(i) for i in episodeNumSet]
+    episodeNumList.sort()
+
+    if len(episodeNumList) >= 1:
+      episodeNum = "{0}".format(episodeNumList[0])
+      if len(episodeNumList) > 1:
+        for x, y in enumerate(episodeNumList[1:]):
+          strNum = "{0}".format(y)
+          if len(strNum) == 1:
+            strNum = "0{0}".format(strNum)
+
+          self.showInfo.multiPartEpisodeNumbers.append(strNum)
     else:
-      (self.showInfo.seasonNum, self.showInfo.episodeNum) = match.pop()
-      if len(self.showInfo.seasonNum) == 1:
-        self.showInfo.seasonNum = "0{0}".format(self.showInfo.seasonNum)
-      if len(self.showInfo.episodeNum) == 1:
-        self.showInfo.episodeNum = "0{0}".format(self.showInfo.episodeNum)
-      self.fileInfo.showName = re.findall("(.+?)[_.-]?\s?[sS][0-9]+[eE][0-9]+", fileName)[0]
-      return(True)
+      logzila.Log.Info("TVFILE", "Incompatible filename no episode match detected: {0}".format(self.fileInfo.origPath))
+      return False
+
+    if len(episodeNum) == 1:
+      episodeNum = "0{0}".format(episodeNum)
+
+    self.showInfo.episodeNum = episodeNum
+
+    # Season Number
+    seasonNumSet = set(re.findall("[sS]([0-9]+)", fileName))
+
+    if len(seasonNumSet) == 1:
+      seasonNum = seasonNumSet.pop()
+    else:
+      seasonNumSet = set(re.findall("([0-9]+)[xX]", fileName))
+
+      if len(seasonNumSet) == 1:
+        seasonNum = seasonNumSet.pop()
+      else:
+        logzila.Log.Info("TVFILE", "Incompatible filename no season match detected: {0}".format(self.fileInfo.origPath))
+        return False
+
+    if len(seasonNum) == 1:
+      seasonNum = "0{0}".format(seasonNum)
+
+    self.showInfo.seasonNum = seasonNum
+
+    # Show Name
+    showNameList = re.findall("(.+?)\s*[_.-]*\s*[sS]?[0-9]+[xXeE][0-9]+.*", fileName)
+
+    if len(showNameList) == 1:
+      showName = showNameList[0].strip()
+    else:
+      logzila.Log.Info("TVFILE", "Incompatible filename no show name detected: {0}".format(self.fileInfo.origPath))
+      return False
+
+    self.fileInfo.showName = showName
+    return True
 
   ############################################################################
   # GenerateNewFileName
@@ -99,8 +137,13 @@ class TVFile:
     if self.showInfo.showName is not None and self.showInfo.seasonNum is not None and \
        self.showInfo.episodeNum is not None and self.showInfo.episodeName is not None:
       ext = os.path.splitext(self.fileInfo.origPath)[1]
-      newFileName = "{0}.S{1}E{2}.{3}{4}".format(self.showInfo.showName, self.showInfo.seasonNum, \
-                                            self.showInfo.episodeNum, self.showInfo.episodeName, ext)
+      newFileName = "{0}.S{1}E{2}".format(self.showInfo.showName, self.showInfo.seasonNum, \
+                                            self.showInfo.episodeNum)
+
+      for episodeNum in self.showInfo.multiPartEpisodeNumbers:
+        newFileName = newFileName + "_{0}".format(episodeNum)
+
+      newFileName = newFileName + ".{0}{1}".format(self.showInfo.episodeName, ext)
       newFileName = util.StripSpecialCharacters(newFileName)
       return newFileName
 
