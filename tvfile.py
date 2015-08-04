@@ -68,18 +68,29 @@ class TVFile:
   ############################################################################
   # GetShowDetails
   # Extract show details from file name
-  # Expecting unique season and episode give in form S([0-9]+)E([0-9]+)
-  # All information preceeding this is used as the show name
+  # Expecting unique season and episode
+  # Supports formats S<NUM>E<NUM> or <NUM>x<NUM> where letters are case insensitive
+  #   and number can be one or more digits.
+  # All information preceeding season number is used for the show name lookup
   ############################################################################
   def GetShowDetails(self):
     fileName = os.path.splitext(os.path.basename(self.fileInfo.origPath))[0]
 
     # Episode Number
-    episodeNumSet = set(re.findall("[xXeE]([0-9]+)", fileName))
+    episodeNumSubstring = set(re.findall("(?<=[0-9])[xXeE][0-9]+(?:[xXeE_.-][0-9]+)*", fileName))
+
+    if len(episodeNumSubstring) != 1:
+      logzila.Log.Info("TVFILE", "Incompatible filename no episode match detected: {0}".format(self.fileInfo.origPath))
+      return False
+
+    episodeNumSet = set(re.findall("(?<=[xXeE_.-])[0-9]+", episodeNumSubstring.pop()))
     episodeNumList = [int(i) for i in episodeNumSet]
     episodeNumList.sort()
 
-    if len(episodeNumList) >= 1:
+    if len(episodeNumList) < 1:
+      logzila.Log.Info("TVFILE", "Incompatible filename no episode match detected: {0}".format(self.fileInfo.origPath))
+      return False
+    else:
       episodeNum = "{0}".format(episodeNumList[0])
       if len(episodeNumList) > 1:
         for x, y in enumerate(episodeNumList[1:]):
@@ -88,9 +99,6 @@ class TVFile:
             strNum = "0{0}".format(strNum)
 
           self.showInfo.multiPartEpisodeNumbers.append(strNum)
-    else:
-      logzila.Log.Info("TVFILE", "Incompatible filename no episode match detected: {0}".format(self.fileInfo.origPath))
-      return False
 
     if len(episodeNum) == 1:
       episodeNum = "0{0}".format(episodeNum)
@@ -103,7 +111,7 @@ class TVFile:
     if len(seasonNumSet) == 1:
       seasonNum = seasonNumSet.pop()
     else:
-      seasonNumSet = set(re.findall("([0-9]+)[xX]", fileName))
+      seasonNumSet = set(re.findall("([0-9]+)[xX](?:[0-9]+[xX])*", fileName))
 
       if len(seasonNumSet) == 1:
         seasonNum = seasonNumSet.pop()
