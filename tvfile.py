@@ -93,12 +93,17 @@ class TVFile:
     else:
       episodeNum = "{0}".format(episodeNumList[0])
       if len(episodeNumList) > 1:
-        for x, y in enumerate(episodeNumList[1:]):
-          strNum = "{0}".format(y)
-          if len(strNum) == 1:
-            strNum = "0{0}".format(strNum)
+        episodeNumReference = episodeNumList[0]
+        for episodeNumIter in episodeNumList[1:]:
+          if episodeNumIter == (episodeNumReference+1):
+            strNum = "{0}".format(episodeNumIter)
+            if len(strNum) == 1:
+              strNum = "0{0}".format(strNum)
 
-          self.showInfo.multiPartEpisodeNumbers.append(strNum)
+            self.showInfo.multiPartEpisodeNumbers.append(strNum)
+            episodeNumReference = episodeNumIter
+          else:
+            break
 
     if len(episodeNum) == 1:
       episodeNum = "0{0}".format(episodeNum)
