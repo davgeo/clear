@@ -33,7 +33,7 @@ class DownloadManager:
     self._enableExtract = False
 
   ############################################################################
-  # _UserUpdateConfigDir
+  # _UserUpdateConfigValue
   ############################################################################
   def _UserUpdateConfigValue(self, configKey, strDescriptor, dbConfigValue = None):
     newConfigValue = None
@@ -84,11 +84,8 @@ class DownloadManager:
   ############################################################################
   # _UserUpdateSupportedFormats
   ############################################################################
-  def _UserUpdateSupportedFormats(self, origFormatList = None):
-    if origFormatList is None:
-      formatList = []
-    else:
-      formatList = list(origFormatList)
+  def _UserUpdateSupportedFormats(self, origFormatList = []):
+    formatList = list(origFormatList)
 
     inputDone = None
     while inputDone is None:
@@ -142,11 +139,8 @@ class DownloadManager:
   ############################################################################
   # _UserUpdateIgnoredDirs
   ############################################################################
-  def _UserUpdateIgnoredDirs(self, origIgnoredDirs = None):
-    if origIgnoredDirs is None:
-      ignoredDirs = []
-    else:
-      ignoredDirs = list(origIgnoredDirs)
+  def _UserUpdateIgnoredDirs(self, origIgnoredDirs = []):
+    ignoredDirs = list(origIgnoredDirs)
 
     inputDone = None
     while inputDone is None:
@@ -234,10 +228,10 @@ class DownloadManager:
     parser.add_argument('--reset', help='resets database', action="store_true")
     parser.add_argument('--copy', help='enable copying between file systems', action="store_true")
     parser.add_argument('--inplace', help='rename files in place', action="store_true")
-    parser.add_argument('--debug', help='enable full logging', action="store_true")
+    parser.add_argument('-d', '--debug', help='enable full logging', action="store_true")
     parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
-    parser.add_argument('--update_db', help='provides option to update existing database fields', action="store_true")
-    parser.add_argument('--extract', help='enable extracting of rar files', action="store_true")
+    parser.add_argument('-u', '--update_db', help='provides option to update existing database fields', action="store_true")
+    parser.add_argument('-e', '--extract', help='enable extracting of rar files', action="store_true")
     args = parser.parse_args()
 
     if args.test:
@@ -277,6 +271,7 @@ class DownloadManager:
   ############################################################################
   def Run(self):
     self._GetArgs()
+
     logzila.Log.Info("DM", "Using database: {0}".format(self._databasePath))
     self._db = database.RenamerDB(self._databasePath)
 

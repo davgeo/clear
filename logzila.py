@@ -1,6 +1,8 @@
 ''' LOGGING '''
 # Python default package imports
 from enum import Enum
+import sys
+
 # Custom Python package imports
 
 # Local file imports
@@ -66,6 +68,13 @@ class Log:
   ############################################################################
   def Error(tag, string):
     Log.Info(tag, "ERROR: " + string, verbosity=Verbosity.ALWAYS)
+
+  ############################################################################
+  # Fatal
+  ############################################################################
+  def Fatal(tag, string):
+    Log.Info(tag, "FATAL: " + string, verbosity=Verbosity.ALWAYS)
+    sys.exit(0)
 
   ############################################################################
   # Input

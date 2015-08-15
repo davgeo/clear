@@ -1,6 +1,7 @@
 ''' DATABASE '''
 # Python default package imports
 import sqlite3
+import os
 
 # Local file imports
 import logzila
@@ -16,6 +17,45 @@ class RenamerDB:
   #################################################
   def __init__(self, dbPath):
     self._dbPath = dbPath
+
+    if not os.path.exists(self._dbPath):
+      self._CreateDatabase()
+    elif not os.path.isfile(self._dbPath):
+      logzila.Log.Fatal("DB", "Database path exists but it is not a file: {0}".format(self._dbPath))
+
+  #################################################
+  # _CreateDatabase
+  #################################################
+  def _CreateDatabase(self):
+    logzila.Log.Info("DB", "Initialising new database", verbosity=self.logVerbosity)
+
+    with sqlite3.connect(self._dbPath) as db:
+      db.execute("CREATE TABLE Config (Name TEXT, Value text)")
+
+      db.execute("CREATE TABLE IgnoredDir (DirName text)")
+
+      db.execute("CREATE TABLE SupportedFormat (FileFormat text)")
+
+      db.execute("CREATE TABLE TVLibrary ("
+                  "ShowID INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                  "ShowName TEXT UNIQUE NOT NULL, "
+                  "ShowDir TEXT UNIQUE)")
+
+      db.execute("CREATE TABLE FileName ("
+                  "FileName TEXT UNIQUE NOT NULL, "
+                  "ShowID INTEGER, "
+                  "FOREIGN KEY (ShowID) REFERENCES ShowName(ShowID))")
+
+      db.execute("CREATE TABLE SeasonDir ("
+                  "SeasonDir TEXT NOT NULL, "
+                  "Season INTEGER NOT NULL, "
+                  "ShowID INTEGER, "
+                  "FOREIGN KEY (ShowID) REFERENCES ShowName(ShowID),"
+                  "CONSTRAINT SeasonDirPK PRIMARY KEY (ShowID,Season))")
+
+      db.commit()
+
+    logzila.Log.Info("DB", "Database initialisation complete", verbosity=self.logVerbosity)
 
   #################################################
   # _QueryDatabase
@@ -38,13 +78,6 @@ class RenamerDB:
         return result.fetchall()
 
   #################################################
-  # DropTable
-  #################################################
-  def DropTable(self, tableName):
-    logzila.Log.Info("DB", "Deleting table {0}".format(tableName), verbosity=self.logVerbosity)
-    self._QueryDatabase("DROP TABLE {0}".format(tableName))
-
-  #################################################
   # _PurgeTable
   # Deletes all rows without dropping table
   #################################################
@@ -53,28 +86,10 @@ class RenamerDB:
     self._QueryDatabase("DELETE FROM {0}".format(tableName))
 
   #################################################
-  # SetConfigValue
-  #################################################
-  def SetConfigValue(self, fieldName, value):
-    tableExists = self._QueryDatabase("CREATE TABLE Config (Name text, Value text)", error = False)
-
-    if tableExists is None:
-      currentConfigValue = self.GetConfigValue(fieldName)
-    else:
-      currentConfigValue = None
-
-    if currentConfigValue is None:
-      logzila.Log.Info("DB", "Adding {0}={1} to database config table".format(fieldName, value), verbosity=self.logVerbosity)
-      self._QueryDatabase("INSERT INTO Config VALUES (?,?)", (fieldName, value))
-    else:
-      logzila.Log.Info("DB", "Updating {0} in database config table from {1} to {2}".format(fieldName, currentConfigValue, value), verbosity=self.logVerbosity)
-      self._QueryDatabase("UPDATE Config SET Value=? WHERE Name=?", (value, fieldName))
-
-  #################################################
   # GetConfigValue
   #################################################
   def GetConfigValue(self, fieldName):
-    result = self._QueryDatabase("SELECT Value FROM Config WHERE Name=?", (fieldName, ), error = False)
+    result = self._QueryDatabase("SELECT Value FROM Config WHERE Name=?", (fieldName, ))
 
     if result is None:
       return None
@@ -84,23 +99,32 @@ class RenamerDB:
       logzila.Log.Info("DB", "Found database match in config table {0}={1}".format(fieldName, result[0][0]), verbosity=self.logVerbosity)
       return result[0][0]
     elif len(result) > 1:
-      logzila.Log.Error("DB", "Database corrupted - multiple matches found in config table {0}={1}".format(fieldName, result))
-      raise Exception("Corrupted database")
+      logzila.Log.Fatal("DB", "Database corrupted - multiple matches found in config table {0}={1}".format(fieldName, result))
+
+  #################################################
+  # SetConfigValue
+  #################################################
+  def SetConfigValue(self, fieldName, value):
+    currentConfigValue = self.GetConfigValue(fieldName)
+
+    if currentConfigValue is None:
+      logzila.Log.Info("DB", "Adding {0}={1} to database config table".format(fieldName, value), verbosity=self.logVerbosity)
+      self._QueryDatabase("INSERT INTO Config VALUES (?,?)", (fieldName, value))
+    else:
+      logzila.Log.Info("DB", "Updating {0} in database config table from {1} to {2}".format(fieldName, currentConfigValue, value), verbosity=self.logVerbosity)
+      self._QueryDatabase("UPDATE Config SET Value=? WHERE Name=?", (value, fieldName))
 
   #################################################
   # _AddToSingleColumnTable
   #################################################
   def _AddToSingleColumnTable(self, tableName, columnHeading, newValue):
-    tableExists = self._QueryDatabase("CREATE TABLE {0} ({1} text)".format(tableName, columnHeading), error = False)
-
     match = None
-    if tableExists is None:
-      currentTable = self._GetFromSingleColumnTable(tableName)
+    currentTable = self._GetFromSingleColumnTable(tableName)
 
-      if currentTable is not None:
-        for currentValue in currentTable:
-          if currentValue == newValue:
-            match = True
+    if currentTable is not None:
+      for currentValue in currentTable:
+        if currentValue == newValue:
+          match = True
 
     if match is None:
       logzila.Log.Info("DB", "Adding {0} to {1} table".format(newValue, tableName), verbosity=self.logVerbosity)
@@ -165,25 +189,15 @@ class RenamerDB:
   #################################################
   def AddShowToTVLibrary(self, showName):
     logzila.Log.Info("DB", "Adding {0} to TV library".format(showName), verbosity=self.logVerbosity)
-    queryStr = ("CREATE TABLE TVLibrary ("
-                "ShowID INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
-                "ShowName TEXT UNIQUE NOT NULL, "
-                "ShowDir TEXT UNIQUE"
-                ")")
-    tableExists = self._QueryDatabase(queryStr, error = False)
 
-    if tableExists is None:
-      currentShowValues = self.SearchTVLibrary(showName = showName)
-    else:
-      currentShowValues = None
+    currentShowValues = self.SearchTVLibrary(showName = showName)
 
     if currentShowValues is None:
       self._QueryDatabase("INSERT INTO TVLibrary (ShowName) VALUES (?)", (showName, ))
       showID = self._QueryDatabase("SELECT (ShowID) FROM TVLibrary WHERE ShowName=?", (showName, ))[0][0]
       return showID
     else:
-      logzila.Log.Error("DB", "An entry for {0} already exists in the TV library".format(showName))
-      raise Exception("Corrupted database")
+      logzila.Log.Fatal("DB", "An entry for {0} already exists in the TV library".format(showName))
 
   #################################################
   # UpdateShowDirInTVLibrary
@@ -226,8 +240,7 @@ class RenamerDB:
       return result
     elif len(result) > 1:
       if unique is True:
-        logzila.Log.Error("DB", "Database corrupted - multiple matches found in TV Library: {0}".format(result))
-        raise Exception("Corrupted database")
+        logzila.Log.Fatal("DB", "Database corrupted - multiple matches found in TV Library: {0}".format(result))
       else:
         logzila.Log.Info("DB", "Found multiple matches in TVLibrary: {0}".format(result), verbosity=self.logVerbosity)
         return result
@@ -252,8 +265,7 @@ class RenamerDB:
       logzila.Log.Info("DB", "Found file name match: {0}".format(result), verbosity=self.logVerbosity)
       return result[0][0]
     elif len(result) > 1:
-      logzila.Log.Error("DB", "Database corrupted - multiple matches found in database table for: {0}".format(result))
-      raise Exception("Corrupted database")
+      logzila.Log.Fatal("DB", "Database corrupted - multiple matches found in database table for: {0}".format(result))
 
   #################################################
   # AddFileNameTable
@@ -261,23 +273,12 @@ class RenamerDB:
   def AddToFileNameTable(self, fileName, showID):
     logzila.Log.Info("DB", "Adding filename string match '{0}'={1} to database".format(fileName, showID), verbosity=self.logVerbosity)
 
-    queryStr = ("CREATE TABLE FileName ("
-                "FileName TEXT UNIQUE NOT NULL, "
-                "ShowID INTEGER, "
-                "FOREIGN KEY (ShowID) REFERENCES ShowName(ShowID)"
-                ")")
-    tableExists = self._QueryDatabase(queryStr, error = False)
-
-    if tableExists is None:
-      currentValues = self.SearchFileNameTable(fileName)
-    else:
-      currentValues = None
+    currentValues = self.SearchFileNameTable(fileName)
 
     if currentValues is None:
       self._QueryDatabase("INSERT INTO FileName (FileName, ShowID) VALUES (?,?)", (fileName, showID))
     else:
-      logzila.Log.Error("DB", "An entry for '{0}' already exists in the FileName table".format(fileName))
-      raise Exception("Corrupted database")
+      logzila.Log.Fatal("DB", "An entry for '{0}' already exists in the FileName table".format(fileName))
 
   #################################################
   # SearchSeasonDirTable
@@ -299,8 +300,7 @@ class RenamerDB:
       logzila.Log.Info("DB", "Found database match: {0}".format(result), verbosity=self.logVerbosity)
       return result[0][0]
     elif len(result) > 1:
-      logzila.Log.Error("DB", "Database corrupted - multiple matches found in database table for: {0}".format(result))
-      raise Exception("Corrupted database")
+      logzila.Log.Fatal("DB", "Database corrupted - multiple matches found in database table for: {0}".format(result))
 
   #################################################
   # AddSeasonDirTable
@@ -308,19 +308,7 @@ class RenamerDB:
   def AddSeasonDirTable(self, showID, seasonNum, seasonDir):
     logzila.Log.Info("DB", "Adding season directory ({0}) to database for ShowID={1}, Season={2}".format(seasonDir, showID, seasonNum), verbosity=self.logVerbosity)
 
-    queryStr = ("CREATE TABLE SeasonDir ("
-                "SeasonDir TEXT NOT NULL, "
-                "Season INTEGER NOT NULL, "
-                "ShowID INTEGER, "
-                "FOREIGN KEY (ShowID) REFERENCES ShowName(ShowID),"
-                "CONSTRAINT SeasonDirPK PRIMARY KEY (ShowID,Season)"
-                ")")
-    tableExists = self._QueryDatabase(queryStr, error = False)
-
-    if tableExists is None:
-      currentValue = self.SearchSeasonDirTable(showID, seasonNum)
-    else:
-      currentValue = None
+    currentValue = self.SearchSeasonDirTable(showID, seasonNum)
 
     if currentValue is None:
       self._QueryDatabase("INSERT INTO SeasonDir (SeasonDir, Season, ShowID) VALUES (?,?,?)", (seasonDir, seasonNum, showID))
@@ -328,5 +316,4 @@ class RenamerDB:
       if currentValue == seasonDir:
         logzila.Log.Info("DB", "A matching entry already exists in the SeasonDir table", verbosity=self.logVerbosity)
       else:
-        logzila.Log.Error("DB", "A different entry already exists in the SeasonDir table")
-        raise Exception("Corrupted database")
+        logzila.Log.Fatal("DB", "A different entry already exists in the SeasonDir table")
