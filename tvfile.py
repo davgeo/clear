@@ -72,6 +72,7 @@ class TVFile:
   # Supports formats S<NUM>E<NUM> or <NUM>x<NUM> where letters are case insensitive
   #   and number can be one or more digits.
   # All information preceeding season number is used for the show name lookup
+  # This string is forced to lowercase and stripped of special characters
   ############################################################################
   def GetShowDetails(self):
     fileName = os.path.splitext(os.path.basename(self.fileInfo.origPath))[0]
@@ -133,7 +134,7 @@ class TVFile:
     showNameList = re.findall("(.+?)\s*[_.-]*\s*[sS]?[0-9]+[xXeE][0-9]+.*", fileName)
 
     if len(showNameList) == 1:
-      showName = showNameList[0].strip()
+      showName = util.StripSpecialCharacters(showNameList[0].lower(), stripAll=True)
     else:
       logzila.Log.Info("TVFILE", "Incompatible filename no show name detected: {0}".format(self.fileInfo.origPath))
       return False

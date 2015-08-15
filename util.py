@@ -48,13 +48,21 @@ def CheckPathExists(path):
 
 ############################################################################
 # StripSpecialCharacters
-#
+# Strips special characters, duplicate spaces and post/pre-ceeding spaces
+# This will only strip single spaces, periods, hyphens and underscores
+# if stripAll is set
 ############################################################################
-def StripSpecialCharacters(string):
+def StripSpecialCharacters(string, stripAll = False):
   logzila.Log.Info("UTIL", "Stripping any special characters from {0}".format(string), verbosity=logzila.Verbosity.MINIMAL)
+  string = string.strip()
   string = re.sub('[&]', 'and', string)
   string = re.sub('[@#$%^&*{};:,/<>?\|`~=+]', '', string)
   string = re.sub('\s\s+', ' ', string)
+
+  if stripAll:
+    string = re.sub('[_.-]', '', string)
+    string = re.sub('\s', '', string)
+
   logzila.Log.Info("UTIL", "New string is: {0}".format(string), verbosity=logzila.Verbosity.MINIMAL)
   return string
 
