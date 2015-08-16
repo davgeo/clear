@@ -140,9 +140,16 @@ def UserAcceptance(
 
 ############################################################################
 # GetBestMatch
+# This finds the elements of matchList which best match the target string
+# Note that this searches substrings so "abc" will have a 100% match in
+# both "this is the abc", "abcde" and "abc"
+# The return from this function is a list of potention matches which shared
+# the same highest match score. If any exact match is found (1.0 score and
+# equal size string) this will be given alone.
 ############################################################################
 def GetBestMatch(target, matchList):
   bestMatchList = []
+
   if len(matchList) > 0:
     ratioMatch = []
     for item in matchList:
@@ -153,7 +160,11 @@ def GetBestMatch(target, matchList):
       matchIndexList = [i for i, j in enumerate(ratioMatch) if j == maxRatio]
 
       for index in matchIndexList:
-        bestMatchList.append(matchList[index])
+        if maxRatio == 1 and len(matchList[index]) == len(target):
+          return [matchList[index], ]
+        else:
+          bestMatchList.append(matchList[index])
+
   return bestMatchList
 
 ############################################################################
