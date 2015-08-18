@@ -2,6 +2,7 @@
 # Python default package imports
 import sqlite3
 import os
+import re
 
 # Local file imports
 import logzila
@@ -18,6 +19,13 @@ class RenamerDB:
   def __init__(self, dbPath):
     self._dbPath = dbPath
 
+    self._tableDict = {"Config": ('Name', 'Value'),
+                       "IgnoredDir": ('DirName',),
+                       "SupportedFormat": ('FileFormat',),
+                       "TVLibrary": ('ShowID', 'ShowName', 'ShowDir'),
+                       "FileName": ('ShowID', 'ShowDir'),
+                       "SeasonDir": ('ShowID', 'Season', 'SeasonDir')}
+
     if not os.path.exists(self._dbPath):
       self._CreateDatabase()
     elif not os.path.isfile(self._dbPath):
@@ -30,12 +38,18 @@ class RenamerDB:
     logzila.Log.Info("DB", "Initialising new database", verbosity=self.logVerbosity)
 
     with sqlite3.connect(self._dbPath) as db:
-      db.execute("CREATE TABLE Config (Name TEXT, Value text)")
+      # Configuration tables
+      db.execute("CREATE TABLE Config ("
+                  "Name TEXT UNIQUE NOT NULL, "
+                  "Value TEXT)")
 
-      db.execute("CREATE TABLE IgnoredDir (DirName text)")
+      db.execute("CREATE TABLE IgnoredDir ("
+                  "DirName TEXT UNIQUE NOT NULL")
 
-      db.execute("CREATE TABLE SupportedFormat (FileFormat text)")
+      db.execute("CREATE TABLE SupportedFormat ("
+                  "FileFormat TEXT UNIQUE NOT NULL)")
 
+      # Look-up tables
       db.execute("CREATE TABLE TVLibrary ("
                   "ShowID INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
                   "ShowName TEXT UNIQUE NOT NULL, "
@@ -47,9 +61,9 @@ class RenamerDB:
                   "FOREIGN KEY (ShowID) REFERENCES ShowName(ShowID))")
 
       db.execute("CREATE TABLE SeasonDir ("
-                  "SeasonDir TEXT NOT NULL, "
-                  "Season INTEGER NOT NULL, "
                   "ShowID INTEGER, "
+                  "Season INTEGER NOT NULL, "
+                  "SeasonDir TEXT NOT NULL, "
                   "FOREIGN KEY (ShowID) REFERENCES ShowName(ShowID),"
                   "CONSTRAINT SeasonDirPK PRIMARY KEY (ShowID,Season))")
 
@@ -311,9 +325,173 @@ class RenamerDB:
     currentValue = self.SearchSeasonDirTable(showID, seasonNum)
 
     if currentValue is None:
-      self._QueryDatabase("INSERT INTO SeasonDir (SeasonDir, Season, ShowID) VALUES (?,?,?)", (seasonDir, seasonNum, showID))
+      self._QueryDatabase("INSERT INTO SeasonDir (ShowID, Season, SeasonDir) VALUES (?,?,?)", (showID, seasonNum, seasonDir))
     else:
       if currentValue == seasonDir:
         logzila.Log.Info("DB", "A matching entry already exists in the SeasonDir table", verbosity=self.logVerbosity)
       else:
         logzila.Log.Fatal("DB", "A different entry already exists in the SeasonDir table")
+
+  #################################################
+  # _PrintDatabaseTable
+  # Gets database column headings using PRAGMA call
+  # Automatically adjusts each column width based on the
+  # longest element that needs to be printed
+  #################################################
+  def _PrintDatabaseTable(self, tableName):
+    logzila.Log.Info("DB", "{0}".format(tableName))
+    logzila.Log.IncreaseIndent()
+    tableInfo = self._QueryDatabase("PRAGMA table_info({0})".format(tableName))
+    tableData = self._QueryDatabase("SELECT * FROM {0}".format(tableName))
+
+    columnCount = len(tableInfo)
+
+    columnWidths = [0]*columnCount
+
+    columnHeadings = []
+    for count, column in enumerate(tableInfo):
+      columnHeadings.append(column[1])
+      columnWidths[count] = len(column[1])
+
+    for row in tableData:
+      for count, column in enumerate(row):
+        if len(str(column)) > columnWidths[count]:
+          columnWidths[count] = len(column)
+
+    printStr = "|"
+    for count, column in enumerate(columnWidths):
+      printStr = printStr + " {{0[{0}]:{1}}} |".format(count, columnWidths[count])
+
+    logzila.Log.Info("DB", printStr.format(columnHeadings))
+    logzila.Log.Info("DB", "-"*(sum(columnWidths)+3*len(columnWidths)+1))
+
+    for row in tableData:
+      noneReplacedRow = ['-' if i is None else i for i in row]
+      logzila.Log.Info("DB", printStr.format(noneReplacedRow))
+
+    logzila.Log.DecreaseIndent()
+    logzila.Log.NewLine()
+
+  #################################################
+  # PrintAllTables
+  #################################################
+  def PrintAllTables(self):
+    logzila.Log.Info("DB", "Database contents:\n")
+    for table in self._tableDict.keys():
+      self._PrintDatabaseTable(table)
+
+  #################################################
+  # ManualUpdateTables
+  #################################################
+  def ManualUpdateTables(self):
+    logzila.Log.Info("DB", "Starting manual database update:\n")
+
+    updateFinished = False
+
+    while not updateFinished:
+      prompt = "Enter 'ls' to print the database contents, " \
+                     "'a' to add a table entry, " \
+                     "'d' to delete a single table row, " \
+                     "'p' to select a entire table to purge, " \
+                     "'f' to finish or " \
+                     "'x' to exit: "
+      response = logzila.Log.Input("DM", prompt)
+
+      logzila.Log.NewLine()
+      logzila.Log.IncreaseIndent()
+
+      if response.lower() == 'x':
+        logzila.Log.Fatal("DB", "Program exited by user response")
+      elif response.lower() == 'f':
+        updateFinished = True
+      elif response.lower() == 'ls':
+        self.PrintAllTables()
+      elif response.lower() == 'p':
+        response = logzila.Log.Input("DM", "Enter database table to purge or 'c' to cancel: ")
+        if response.lower() == 'c':
+          logzila.Log.Info("DB", "Database table purge cancelled")
+        else:
+          if response in self._tableDict.keys():
+            self._PurgeTable(response)
+            logzila.Log.Info("DB", "{0} database table purged".format(response))
+          else:
+            logzila.Log.Info("DB", "Unknown table name ({0}) given to purge".format(response))
+      elif response.lower() == 'a':
+        prompt = "Enter new database row (in format TABLE COL1=VAL COL2=VAL etc) " \
+                  "or 'c' to cancel: "
+        response = logzila.Log.Input("DM", prompt)
+
+        if response.lower() == 'c':
+          logzila.Log.Info("DB", "Database table add cancelled")
+        else:
+          tableName, tableColumns = response.split(' ', 1)
+          if tableName not in self._tableDict.keys():
+            logzila.Log.Info("DB", "Unkown table name: {0}".format(tableName))
+          else:
+            matchPattern = '{0}'.format(tableName)
+            dbQuery = "INSERT INTO {0} (".format(tableName)
+            for column in self._tableDict[tableName]:
+              matchPattern = matchPattern + '\s+{0}=\s*(.+)'.format(column)
+              dbQuery = dbQuery + "{0}, ".format(column)
+
+            dbQuery = dbQuery[:-2] + ") VALUES (?{0})".format(', ?'*(len(self._tableDict[tableName])-1))
+            print(dbQuery)
+            try:
+              match = re.findall(matchPattern, response)[0]
+              print(match)
+            except IndexError:
+              logzila.Log.Info("DB", "Attempt to add to database table {0} failed - specified columns did not match expected".format(tableName))
+            else:
+              if len(self._tableDict[tableName]) > 1:
+                dbTuples = match
+              else:
+                dbTuples = (match, )
+
+              try:
+                self._QueryDatabase(dbQuery, dbTuples)
+              except sqlite3.IntegrityError:
+                logzila.Log.Info("DB", "Attempt to add to database table {0} failed - check data integrity".format(tableName))
+              else:
+                logzila.Log.Info("DB", "Added new row to database table {0}:".format(tableName))
+                self._PrintDatabaseTable(tableName)
+      elif response.lower() == 'd':
+        prompt = "Enter database row to delete (in format TABLE COL1=VAL COL2=VAL etc) " \
+                  "or 'c' to cancel: "
+        response = logzila.Log.Input("DM", prompt)
+
+        if response.lower() == 'c':
+          logzila.Log.Info("DB", "Database table row delete cancelled")
+        else:
+          tableName, tableColumns = response.split(' ', 1)
+          if tableName not in self._tableDict.keys():
+            logzila.Log.Info("DB", "Unkown table name: {0}".format(tableName))
+          else:
+            matchPattern = '{0}'.format(tableName)
+            dbQuery = "DELETE FROM {0} WHERE".format(tableName)
+            for column in self._tableDict[tableName]:
+              matchPattern = matchPattern + '\s+{0}=(.+)'.format(column)
+              dbQuery = dbQuery + " {0}=? AND".format(column)
+
+            dbQuery = dbQuery[:-4]
+
+            try:
+              match = re.findall(matchPattern, response)[0]
+            except IndexError:
+              logzila.Log.Info("DB", "Attempt to delete row from database table {0} failed - an exact column match is required".format(tableName))
+            else:
+              if len(self._tableDict[tableName]) > 1:
+                dbTuples = match
+              else:
+                dbTuples = (match, )
+
+              self._QueryDatabase(dbQuery, dbTuples)
+              logzila.Log.Info("DB", "Delete row from database table {0}:".format(tableName))
+              self._PrintDatabaseTable(tableName)
+      else:
+        logzila.Log.Info("DB", "Unknown response")
+
+      logzila.Log.DecreaseIndent()
+      logzila.Log.NewLine()
+
+    logzila.Log.Info("DB", "Manual database update complete.")
+    self.PrintAllTables()

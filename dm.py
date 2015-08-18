@@ -30,6 +30,7 @@ class DownloadManager:
     self._inPlaceRename = False
     self._crossSystemCopyEnabled = False
     self._dbUpdate = False
+    self._dbPrint = False
     self._enableExtract = False
 
   ############################################################################
@@ -232,6 +233,7 @@ class DownloadManager:
     parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
     parser.add_argument('-u', '--update_db', help='provides option to update existing database fields', action="store_true")
     parser.add_argument('-e', '--extract', help='enable extracting of rar files', action="store_true")
+    parser.add_argument('-p', '--print_db', help='print contents of database', action="store_true")
     args = parser.parse_args()
 
     if args.test:
@@ -261,6 +263,9 @@ class DownloadManager:
     if args.update_db:
       self._dbUpdate = True
 
+    if args.print_db:
+      self._dbPrint = True
+
     if args.extract:
       self._enableExtract = True
 
@@ -274,6 +279,14 @@ class DownloadManager:
 
     logzila.Log.Info("DM", "Using database: {0}".format(self._databasePath))
     self._db = database.RenamerDB(self._databasePath)
+
+    if self._dbPrint or self._dbUpdate:
+      logzila.Log.Seperator()
+      self._db.PrintAllTables()
+
+      if self._dbUpdate:
+        logzila.Log.Seperator()
+        self._db.ManualUpdateTables()
 
     self._GetDatabaseConfig()
 
