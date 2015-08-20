@@ -6,6 +6,7 @@ import re
 
 # Local file imports
 import logzila
+import util
 
 #################################################
 # RenamerDB
@@ -337,13 +338,23 @@ class RenamerDB:
   # Gets database column headings using PRAGMA call
   # Automatically adjusts each column width based on the
   # longest element that needs to be printed
+  # Provide an optional list of column names and values to
+  # print a subset of the table
   #################################################
-  def _PrintDatabaseTable(self, tableName):
+  def _PrintDatabaseTable(self, tableName, rowSelect = None):
     logzila.Log.Info("DB", "{0}".format(tableName))
     logzila.Log.IncreaseIndent()
     tableInfo = self._QueryDatabase("PRAGMA table_info({0})".format(tableName))
-    tableData = self._QueryDatabase("SELECT * FROM {0}".format(tableName))
 
+
+    dbQuery = "SELECT * FROM {0}".format(tableName)
+    dbQueryParams = []
+
+    if rowSelect is not None:
+      dbQuery = dbQuery + " WHERE " + ' AND '.join(['{0}=?'.format(i) for i, j in rowSelect])
+      dbQueryParams = [j for i, j in rowSelect]
+
+    tableData = self._QueryDatabase(dbQuery, dbQueryParams)
     columnCount = len(tableInfo)
 
     columnWidths = [0]*columnCount
@@ -372,6 +383,8 @@ class RenamerDB:
     logzila.Log.DecreaseIndent()
     logzila.Log.NewLine()
 
+    return len(tableData)
+
   #################################################
   # PrintAllTables
   #################################################
@@ -381,13 +394,97 @@ class RenamerDB:
       self._PrintDatabaseTable(table)
 
   #################################################
+  # _UpdateDatabaseFromResponse
+  #################################################
+  def _UpdateDatabaseFromResponse(self, response, mode):
+    # Get tableName from user input (form TABLENAME COL1=VAL1 COL2=VAL2 etc)
+    try:
+      tableName, tableColumns = response.split(' ', 1)
+    except ValueError:
+      logzila.Log.Info("DB", "Database update failed - failed to extract table name from response")
+      return None
+
+    # Check user input against known table list
+    if tableName not in self._tableDict.keys():
+      logzila.Log.Info("DB", "Database update failed - unkown table name: {0}".format(tableName))
+      return None
+
+    # Build re pattern to extract column from user input (form TABLENAME COL1=VAL1 COL2=VAL2 etc)
+    rowSelect = []
+    for column in self._tableDict[tableName]:
+      colPatternList = ['(?:{0})'.format(i) for i in self._tableDict[tableName] if i != column]
+      colPatternList.append('(?:$)')
+      colPatternMatch = '|'.join(colPatternList)
+      matchPattern = '{0}.*?{1}=(.+?)\s*(?:{2})'.format(tableName, column, colPatternMatch)
+
+      match = re.findall(matchPattern, response)
+
+      # Match should be in form [(VAL1, VAL2, VAL3, etc.)]
+      if len(match) == 1:
+        rowSelect.append((column, match[0]))
+      elif len(match) > 1:
+        logzila.Log.Info('DB', 'Database update failed - multiple matches found for table {0} column {1}'.format(tableName, column))
+        return None
+
+    if len(rowSelect) == 0:
+      logzila.Log.Info('DB', 'Database update failed - no row selection critera found in response')
+      return None
+
+    # Print selected rows
+    rowCount = self._PrintDatabaseTable(tableName, rowSelect)
+
+    # Do DELETE flow
+    if mode.upper() == 'DEL':
+      if rowCount == 0:
+        logzila.Log.Info("DB", "Database update failed - no rows found for given search critera: {0}".format(response))
+        return None
+
+      deleteConfirmation = logzila.Log.Input("DB", "***WARNING*** DELETE THESE ROWS FROM {0} TABLE? [y/n]: ".format(tableName))
+      deleteConfirmation = util.ValidUserResponse(deleteConfirmation, ('y', 'n'))
+
+      if deleteConfirmation.lower() == 'n':
+        logzila.Log.Info("DB", "Database table row delete cancelled")
+        return None
+
+      # Build delete database query (form DELETE FROM TableName WHERE COL1=?, COL2=?)
+      dbQuery = "DELETE FROM {0}".format(tableName) \
+                  + " WHERE " \
+                  + ' AND '.join(['{0}=?'.format(i) for i, j in rowSelect])
+      dbQueryParams = [j for i, j in rowSelect]
+
+      self._QueryDatabase(dbQuery, dbQueryParams)
+
+      logzila.Log.Info("DB", "Deleted {0} row(s) from database table {0}:".format(rowCount, tableName))
+
+    # Do ADD flow
+    elif mode.upper() == 'ADD':
+      if rowCount != 0:
+        logzila.Log.Info("DB", "Database update failed - a row already exists for the given critera: {0}".format(response))
+        return None
+
+      # Build insert database query (form INSERT INTO TableName (COL1, COL2) VALUES (?,?))
+      dbQuery = "INSERT INTO {0} (".format(tableName) \
+                  + ', '.join(['{0}'.format(i) for i, j in rowSelect]) \
+                  + ") VALUES (" \
+                  + ', '.join(['?']*len(rowSelect)) \
+                  + ")"
+      dbQueryParams = [j for i, j in rowSelect]
+
+      self._QueryDatabase(dbQuery, dbQueryParams)
+
+      logzila.Log.Info("DB", "Added row to database table {0}:".format(tableName))
+
+    # Print resulting database table
+    self._PrintDatabaseTable(tableName)
+
+  #################################################
   # ManualUpdateTables
   #################################################
   def ManualUpdateTables(self):
     logzila.Log.Info("DB", "Starting manual database update:\n")
-
     updateFinished = False
 
+    # Loop until the user continues program flow or exits
     while not updateFinished:
       prompt = "Enter 'ls' to print the database contents, " \
                      "'a' to add a table entry, " \
@@ -400,93 +497,71 @@ class RenamerDB:
       logzila.Log.NewLine()
       logzila.Log.IncreaseIndent()
 
+      # Exit program
       if response.lower() == 'x':
         logzila.Log.Fatal("DB", "Program exited by user response")
+
+      # Finish updating database
       elif response.lower() == 'f':
         updateFinished = True
+
+      # Print database tables
       elif response.lower() == 'ls':
         self.PrintAllTables()
+
+      # Purge a given table
       elif response.lower() == 'p':
         response = logzila.Log.Input("DM", "Enter database table to purge or 'c' to cancel: ")
+
+        # Go back to main update selection
         if response.lower() == 'c':
           logzila.Log.Info("DB", "Database table purge cancelled")
+
+        # Purge table
         else:
           if response in self._tableDict.keys():
-            self._PurgeTable(response)
-            logzila.Log.Info("DB", "{0} database table purged".format(response))
+            self._PrintDatabaseTable(response)
+
+            deleteConfirmation = logzila.Log.Input("DB", "***WARNING*** DELETE ALL ROWS FROM {0} TABLE? [y/n]: ".format(response))
+            deleteConfirmation = util.ValidUserResponse(deleteConfirmation, ('y', 'n'))
+
+            if deleteConfirmation.lower() == 'n':
+              logzila.Log.Info("DB", "Database table purge cancelled")
+            else:
+              self._PurgeTable(response)
+              logzila.Log.Info("DB", "{0} database table purged".format(response))
           else:
             logzila.Log.Info("DB", "Unknown table name ({0}) given to purge".format(response))
+
+      # Add new row to table
       elif response.lower() == 'a':
         prompt = "Enter new database row (in format TABLE COL1=VAL COL2=VAL etc) " \
                   "or 'c' to cancel: "
         response = logzila.Log.Input("DM", prompt)
 
+        # Go back to main update selection
         if response.lower() == 'c':
           logzila.Log.Info("DB", "Database table add cancelled")
+
+        # Add row to table
         else:
-          tableName, tableColumns = response.split(' ', 1)
-          if tableName not in self._tableDict.keys():
-            logzila.Log.Info("DB", "Unkown table name: {0}".format(tableName))
-          else:
-            matchPattern = '{0}'.format(tableName)
-            dbQuery = "INSERT INTO {0} (".format(tableName)
-            for column in self._tableDict[tableName]:
-              matchPattern = matchPattern + '\s+{0}=\s*(.+)'.format(column)
-              dbQuery = dbQuery + "{0}, ".format(column)
+          self._UpdateDatabaseFromResponse(response, 'ADD')
 
-            dbQuery = dbQuery[:-2] + ") VALUES (?{0})".format(', ?'*(len(self._tableDict[tableName])-1))
-            print(dbQuery)
-            try:
-              match = re.findall(matchPattern, response)[0]
-              print(match)
-            except IndexError:
-              logzila.Log.Info("DB", "Attempt to add to database table {0} failed - specified columns did not match expected".format(tableName))
-            else:
-              if len(self._tableDict[tableName]) > 1:
-                dbTuples = match
-              else:
-                dbTuples = (match, )
-
-              try:
-                self._QueryDatabase(dbQuery, dbTuples)
-              except sqlite3.IntegrityError:
-                logzila.Log.Info("DB", "Attempt to add to database table {0} failed - check data integrity".format(tableName))
-              else:
-                logzila.Log.Info("DB", "Added new row to database table {0}:".format(tableName))
-                self._PrintDatabaseTable(tableName)
+      # Delete row(s) from table
       elif response.lower() == 'd':
         prompt = "Enter database row to delete (in format TABLE COL1=VAL COL2=VAL etc) " \
                   "or 'c' to cancel: "
         response = logzila.Log.Input("DM", prompt)
 
+        # Go back to main update selection
         if response.lower() == 'c':
           logzila.Log.Info("DB", "Database table row delete cancelled")
+
+        # Delete row(s) from table
         else:
-          tableName, tableColumns = response.split(' ', 1)
-          if tableName not in self._tableDict.keys():
-            logzila.Log.Info("DB", "Unkown table name: {0}".format(tableName))
-          else:
-            matchPattern = '{0}'.format(tableName)
-            dbQuery = "DELETE FROM {0} WHERE".format(tableName)
-            for column in self._tableDict[tableName]:
-              matchPattern = matchPattern + '\s+{0}=(.+)'.format(column)
-              dbQuery = dbQuery + " {0}=? AND".format(column)
+          self._UpdateDatabaseFromResponse(response, 'DEL')
 
-            dbQuery = dbQuery[:-4]
-
-            try:
-              match = re.findall(matchPattern, response)[0]
-            except IndexError:
-              logzila.Log.Info("DB", "Attempt to delete row from database table {0} failed - an exact column match is required".format(tableName))
-            else:
-              if len(self._tableDict[tableName]) > 1:
-                dbTuples = match
-              else:
-                dbTuples = (match, )
-
-              self._QueryDatabase(dbQuery, dbTuples)
-              logzila.Log.Info("DB", "Delete row from database table {0}:".format(tableName))
-              self._PrintDatabaseTable(tableName)
+      # Unknown user input given
       else:
         logzila.Log.Info("DB", "Unknown response")
 

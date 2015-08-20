@@ -83,7 +83,7 @@ def ValidUserResponse(response, validList):
   else:
     prompt = "Unknown response given - please reenter one of [{0}]: ".format('/'.join(validList))
     response = logzila.Log.Input("DM", prompt)
-    self._CheckAcceptableUserResponse(response, validList)
+    return ValidUserResponse(response, validList)
 
 ############################################################################
 # UserAcceptance
