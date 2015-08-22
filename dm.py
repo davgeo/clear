@@ -24,6 +24,7 @@ class DownloadManager:
     self._db = None
     self._downloadDir = None
     self._tvDir = None
+    self._archiveDir = None
     self._supportedFormatsList = []
     self._ignoredDirsList = []
     self._databasePath = 'live.db'
@@ -36,7 +37,7 @@ class DownloadManager:
   ############################################################################
   # _UserUpdateConfigValue
   ############################################################################
-  def _UserUpdateConfigValue(self, configKey, strDescriptor, dbConfigValue = None):
+  def _UserUpdateConfigValue(self, configKey, strDescriptor, isDir = True, dbConfigValue = None):
     newConfigValue = None
 
     if dbConfigValue is None:
@@ -51,30 +52,34 @@ class DownloadManager:
         sys.exit(0)
       elif dbConfigValue is not None and response.lower() == 'y':
         newConfigValue = dbConfigValue
-      elif os.path.isdir(response):
-        newConfigValue = os.path.abspath(response)
+      elif not isDir:
+        newConfigValue = response
         self._db.SetConfigValue(configKey, newConfigValue)
       else:
-        logzila.Log.Info("DM", "{0} is not recognised as a directory".format(response))
+        if os.path.isdir(response):
+          newConfigValue = os.path.abspath(response)
+          self._db.SetConfigValue(configKey, newConfigValue)
+        else:
+          logzila.Log.Info("DM", "{0} is not recognised as a directory".format(response))
 
     return newConfigValue
 
   ############################################################################
-  # _GetConfigDir
+  # _GetConfigValue
   ############################################################################
-  def _GetConfigDir(self, configKey, strDescriptor):
+  def _GetConfigValue(self, configKey, strDescriptor, isDir = True):
     logzila.Log.Info("DM", "Loading {0} from database:".format(strDescriptor))
     logzila.Log.IncreaseIndent()
     configValue = self._db.GetConfigValue(configKey)
 
     if configValue is None:
       logzila.Log.Info("DM", "No {0} exists in database".format(strDescriptor))
-      configValue = self._UserUpdateConfigValue(configKey, strDescriptor)
+      configValue = self._UserUpdateConfigValue(configKey, strDescriptor, isDir)
     elif self._dbUpdate is True:
       logzila.Log.Info("DM", "Got {0} {1} from database".format(strDescriptor, configValue))
-      configValue = self._UserUpdateConfigValue(configKey, strDescriptor, configValue)
+      configValue = self._UserUpdateConfigValue(configKey, strDescriptor, isDir, configValue=dbConfigValue)
 
-    if os.path.isdir(configValue):
+    if not isDir or os.path.isdir(configValue):
       logzila.Log.Info("DM", "Using {0} {1}".format(strDescriptor, configValue))
       logzila.Log.DecreaseIndent()
       return configValue
@@ -186,6 +191,9 @@ class DownloadManager:
       logzila.Log.Info("DM", "Got ignored directories from database: {0}".format(ignoredDirs))
       ignoredDirs = self._UserUpdateIgnoredDirs(ignoredDirs)
 
+    if self._archiveDir not in ignoredDirs:
+      ignoredDirs.append(self._archiveDir)
+
     logzila.Log.Info("DM", "Using ignored directories: {0}".format(ignoredDirs))
     logzila.Log.DecreaseIndent()
     return ignoredDirs
@@ -199,11 +207,14 @@ class DownloadManager:
     logzila.Log.IncreaseIndent()
 
     # DOWNLOAD DIRECTORY
-    self._downloadDir = self._GetConfigDir('DownloadDir', 'download directory')
+    self._downloadDir = self._GetConfigValue('DownloadDir', 'download directory')
 
     # TV DIRECTORY
     if self._inPlaceRename is False:
-      self._tvDir = self._GetConfigDir('TVDir', 'tv directory')
+      self._tvDir = self._GetConfigValue('TVDir', 'tv directory')
+
+    # ARCHIVE DIRECTORY
+    self._archiveDir = self._GetConfigValue('ArchiveDir', 'archive directory', isDir = False)
 
     # SUPPORTED FILE FORMATS
     self._supportedFormatsList = self._GetSupportedFormats()
@@ -300,7 +311,7 @@ class DownloadManager:
       logzila.Log.DecreaseIndent()
 
       logzila.Log.Seperator()
-      extract.Extract(extractFileList, self._supportedFormatsList)
+      extract.Extract(extractFileList, self._supportedFormatsList, self._archiveDir)
 
     logzila.Log.Seperator()
 
@@ -310,7 +321,7 @@ class DownloadManager:
     util.GetSupportedFilesInDir(self._downloadDir, tvFileList, self._supportedFormatsList, self._ignoredDirsList)
     logzila.Log.DecreaseIndent()
 
-    tvRenamer = renamer.TVRenamer(self._db, tvFileList, guideName = 'EPGUIDES', destDir = self._tvDir, inPlaceRename = self._inPlaceRename, forceCopy = self._crossSystemCopyEnabled)
+    tvRenamer = renamer.TVRenamer(self._db, tvFileList, self._archiveDir, guideName = 'EPGUIDES', destDir = self._tvDir, inPlaceRename = self._inPlaceRename, forceCopy = self._crossSystemCopyEnabled)
     tvRenamer.Run()
 
 ############################################################################

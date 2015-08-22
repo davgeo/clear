@@ -19,11 +19,12 @@ class TVRenamer:
   #################################################
   # constructor
   #################################################
-  def __init__(self, db, tvFileList, guideName = epguides.EPGuidesLookup.GUIDE_NAME, destDir = None, inPlaceRename = False, forceCopy = False):
-    self._db        = db
-    self._fileList  = tvFileList
-    self._tvDir = destDir
-    self._forceCopy = forceCopy
+  def __init__(self, db, tvFileList, archiveDir, guideName = epguides.EPGuidesLookup.GUIDE_NAME, destDir = None, inPlaceRename = False, forceCopy = False):
+    self._db            = db
+    self._fileList      = tvFileList
+    self._tvDir         = destDir
+    self._archiveDir    = archiveDir
+    self._forceCopy     = forceCopy
     self._inPlaceRename = inPlaceRename
     self._SetGuide(guideName)
 

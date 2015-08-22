@@ -223,7 +223,7 @@ def WebLookup(url, urlQuery=None, utf8=True):
 # ArchiveProcessedFile
 # Move file to archive directory (by default this is 'PROCESSED')
 ############################################################################
-def ArchiveProcessedFile(filePath, archiveDir = 'PROCESSED'):
+def ArchiveProcessedFile(filePath, archiveDir):
   targetDir = os.path.join(os.path.dirname(filePath), archiveDir)
   logzila.Log.Info("UTIL", "Moving file to archive directory:")
   logzila.Log.IncreaseIndent()
@@ -236,14 +236,6 @@ def ArchiveProcessedFile(filePath, archiveDir = 'PROCESSED'):
   except shutil.Error as ex4:
     err = ex4.args[0]
     logzila.Log.Info("UTIL", "Move to archive directory failed - Shutil Error: {0}".format(err))
-
-############################################################################
-# ArchiveProcessedFileList
-# Move all files to archive directory (by default this is 'PROCESSED')
-############################################################################
-def ArchiveProcessedFileList(fileList, archiveDir = 'PROCESSED'):
-  for filePath in fileList:
-    ArchiveProcessedFile(filePath, archiveDir)
 
 ############################################################################
 # FileExtensionMatch

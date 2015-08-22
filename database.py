@@ -535,31 +535,37 @@ class RenamerDB:
 
       # Add new row to table
       elif response.lower() == 'a':
-        prompt = "Enter new database row (in format TABLE COL1=VAL COL2=VAL etc) " \
-                  "or 'c' to cancel: "
-        response = logzila.Log.Input("DM", prompt)
+        addFinished = False
+        while not addFinished:
+          prompt = "Enter new database row (in format TABLE COL1=VAL COL2=VAL etc) " \
+                    "or 'c' to cancel: "
+          response = logzila.Log.Input("DM", prompt)
 
-        # Go back to main update selection
-        if response.lower() == 'c':
-          logzila.Log.Info("DB", "Database table add cancelled")
+          # Go back to main update selection
+          if response.lower() == 'c':
+            logzila.Log.Info("DB", "Database table add cancelled")
+            addFinished = True
 
-        # Add row to table
-        else:
-          self._UpdateDatabaseFromResponse(response, 'ADD')
+          # Add row to table
+          else:
+            self._UpdateDatabaseFromResponse(response, 'ADD')
 
       # Delete row(s) from table
       elif response.lower() == 'd':
-        prompt = "Enter database row to delete (in format TABLE COL1=VAL COL2=VAL etc) " \
-                  "or 'c' to cancel: "
-        response = logzila.Log.Input("DM", prompt)
+        deleteFinished = False
+        while not deleteFinished:
+          prompt = "Enter database row to delete (in format TABLE COL1=VAL COL2=VAL etc) " \
+                    "or 'c' to cancel: "
+          response = logzila.Log.Input("DM", prompt)
 
-        # Go back to main update selection
-        if response.lower() == 'c':
-          logzila.Log.Info("DB", "Database table row delete cancelled")
+          # Go back to main update selection
+          if response.lower() == 'c':
+            logzila.Log.Info("DB", "Database table row delete cancelled")
+            deleteFinished = True
 
-        # Delete row(s) from table
-        else:
-          self._UpdateDatabaseFromResponse(response, 'DEL')
+          # Delete row(s) from table
+          else:
+            self._UpdateDatabaseFromResponse(response, 'DEL')
 
       # Unknown user input given
       else:
