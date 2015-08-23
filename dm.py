@@ -33,6 +33,7 @@ class DownloadManager:
     self._dbUpdate = False
     self._dbPrint = False
     self._enableExtract = False
+    self._skipUserInput = False
 
   ############################################################################
   # _UserUpdateConfigValue
@@ -174,7 +175,7 @@ class DownloadManager:
       for ignoredDir in ignoredDirs:
         self._db.AddIgnoredDir(ignoredDir)
 
-    return ignoredDirs
+    return list(ignoredDirs)
 
   ############################################################################
   # GetIgnoredDirs
@@ -236,19 +237,23 @@ class DownloadManager:
   ############################################################################
   def _GetArgs(self):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--test', help='run with test database', action="store_true")
-    parser.add_argument('--reset', help='resets database', action="store_true")
-    parser.add_argument('--copy', help='enable copying between file systems', action="store_true")
-    parser.add_argument('--inplace', help='rename files in place', action="store_true")
+    parser.add_argument('-x', '--test', help='run with test database', action="store_true")
+    parser.add_argument('-r', '--reset', help='resets database', action="store_true")
+    parser.add_argument('-c', '--copy', help='enable copying between file systems', action="store_true")
+    parser.add_argument('-i', '--inplace', help='rename files in place', action="store_true")
     parser.add_argument('-d', '--debug', help='enable full logging', action="store_true")
     parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
     parser.add_argument('-u', '--update_db', help='provides option to update existing database fields', action="store_true")
     parser.add_argument('-e', '--extract', help='enable extracting of rar files', action="store_true")
     parser.add_argument('-p', '--print_db', help='print contents of database', action="store_true")
+    parser.add_argument('-n', '--no_input', help='automatically accept or skip user input', action="store_true")
     args = parser.parse_args()
 
     if args.test:
       self._databasePath = 'test.db'
+
+    if args.no_input:
+      self._skipUserInput = True
 
     if args.reset:
       logzila.Log.Info("DM", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE {0}".format(self._databasePath))
@@ -321,7 +326,14 @@ class DownloadManager:
     util.GetSupportedFilesInDir(self._downloadDir, tvFileList, self._supportedFormatsList, self._ignoredDirsList)
     logzila.Log.DecreaseIndent()
 
-    tvRenamer = renamer.TVRenamer(self._db, tvFileList, self._archiveDir, guideName = 'EPGUIDES', destDir = self._tvDir, inPlaceRename = self._inPlaceRename, forceCopy = self._crossSystemCopyEnabled)
+    tvRenamer = renamer.TVRenamer(self._db,
+                                  tvFileList,
+                                  self._archiveDir,
+                                  guideName = 'EPGUIDES',
+                                  destDir = self._tvDir,
+                                  inPlaceRename = self._inPlaceRename,
+                                  forceCopy = self._crossSystemCopyEnabled,
+                                  skipUserInput = self._skipUserInput)
     tvRenamer.Run()
 
 ############################################################################

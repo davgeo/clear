@@ -19,13 +19,14 @@ class TVRenamer:
   #################################################
   # constructor
   #################################################
-  def __init__(self, db, tvFileList, archiveDir, guideName = epguides.EPGuidesLookup.GUIDE_NAME, destDir = None, inPlaceRename = False, forceCopy = False):
+  def __init__(self, db, tvFileList, archiveDir, guideName = epguides.EPGuidesLookup.GUIDE_NAME, destDir = None, inPlaceRename = False, forceCopy = False, skipUserInput = False):
     self._db            = db
     self._fileList      = tvFileList
     self._tvDir         = destDir
     self._archiveDir    = archiveDir
     self._forceCopy     = forceCopy
     self._inPlaceRename = inPlaceRename
+    self._skipUserInput = skipUserInput
     self._SetGuide(guideName)
 
   # *** INTERNAL CLASSES *** #
@@ -67,26 +68,37 @@ class TVRenamer:
     if showInfo.showID is None:
       logzila.Log.Info("RENAMER", "No show ID match found for '{0}' in database".format(stringSearch))
       showNameList = self._guide.ShowNameLookUp(stringSearch)
-      showName = util.UserAcceptance(showNameList)
+
+      if self._skipUserInput is True:
+        if len(showNameList) == 1:
+          showName = showNameList[0]
+        else:
+          showName = None
+      else:
+        showName = util.UserAcceptance(showNameList)
 
       if showName in showNameList:
         libEntry = self._db.SearchTVLibrary(showName = showName)
 
         if libEntry is None:
-          logzila.Log.Info("RENAMER", "No show by this name found in TV library database. Is this a new show for the database?")
-          response = logzila.Log.Input("RENAMER", "Enter 'y' (yes), 'n' (no) or 'ls' (list existing shows): ")
-          response = util.ValidUserResponse(response, ('y', 'n', 'ls'))
-          if response.lower() == 'ls':
-            dbLibList = self._db.SearchTVLibrary()
-            if dbLibList is None:
-              logzila.Log.Info("RENAMER", "TV library is empty")
-              response = 'y'
-            else:
-              dbShowNameList = [i[1] for i in dbLibList]
-              dbShowNameStr = ', '.join(dbShowNameList)
-              logzila.Log.Info("RENAMER", "Existing shows in database are: {0}".format(dbShowNameStr))
-              response = logzila.Log.Input("RENAMER", "Is this a new show? [y/n]: ")
-              response = util.ValidUserResponse(response, ('y', 'n'))
+          if self._skipUserInput is True:
+            response = 'y'
+          else:
+            logzila.Log.Info("RENAMER", "No show by this name found in TV library database. Is this a new show for the database?")
+            response = logzila.Log.Input("RENAMER", "Enter 'y' (yes), 'n' (no) or 'ls' (list existing shows): ")
+            response = util.ValidUserResponse(response, ('y', 'n', 'ls'))
+
+            if response.lower() == 'ls':
+              dbLibList = self._db.SearchTVLibrary()
+              if dbLibList is None:
+                logzila.Log.Info("RENAMER", "TV library is empty")
+                response = 'y'
+              else:
+                dbShowNameList = [i[1] for i in dbLibList]
+                dbShowNameStr = ', '.join(dbShowNameList)
+                logzila.Log.Info("RENAMER", "Existing shows in database are: {0}".format(dbShowNameStr))
+                response = logzila.Log.Input("RENAMER", "Is this a new show? [y/n]: ")
+                response = util.ValidUserResponse(response, ('y', 'n'))
 
           if response.lower() == 'y':
             showInfo.showID = self._db.AddShowToTVLibrary(showName)
@@ -220,8 +232,13 @@ class TVRenamer:
   def _CreateNewSeasonDir(self, seasonNum):
     seasonDirName = "Season {0}".format(seasonNum)
     logzila.Log.Info("RENAMER", "Generated directory name: '{0}'".format(seasonDirName))
-    response = logzila.Log.Input("RENAMER", "Enter 'y' to accept this directory, 'b' to use base show directory, 'x' to skip this file or enter a new directory name to use: ")
-    response = util.CheckEmptyResponse(response)
+
+    if self._skipUserInput is False:
+      response = logzila.Log.Input("RENAMER", "Enter 'y' to accept this directory, 'b' to use base show directory, 'x' to skip this file or enter a new directory name to use: ")
+      response = util.CheckEmptyResponse(response)
+    else:
+      response = 'y'
+
     if response.lower() == 'b':
       return ''
     elif response.lower() == 'y':
@@ -310,7 +327,12 @@ class TVRenamer:
   def _CreateNewShowDir(self, showName):
     stripedDir = util.StripSpecialCharacters(showName)
     logzila.Log.Info("RENAMER", "Suggested show directory name is: '{0}'".format(stripedDir))
-    response = logzila.Log.Input('RENAMER', "Enter 'y' to accept this directory, 'x' to skip this show or enter a new directory to use: ")
+
+    if self._skipUserInput is False:
+      response = logzila.Log.Input('RENAMER', "Enter 'y' to accept this directory, 'x' to skip this show or enter a new directory to use: ")
+    else:
+      response = 'y'
+
     if response.lower() == 'x':
       return None
     elif response.lower() == 'y':
@@ -485,12 +507,15 @@ class TVRenamer:
           logzila.Log.DecreaseIndent()
           logzila.Log.NewLine()
 
-        response = logzila.Log.Input('RENAMER', "***WARNING*** CONTINUE WITH RENAME PROCESS? [y/n]: ")
-        response = util.ValidUserResponse(response, ('y','n'))
+        if self._skipUserInput is False:
+          response = logzila.Log.Input('RENAMER', "***WARNING*** CONTINUE WITH RENAME PROCESS? [y/n]: ")
+          response = util.ValidUserResponse(response, ('y','n'))
+        else:
+          response = 'y'
 
         if response == 'n':
           logzila.Log.Info("RENAMER", "Renaming process skipped")
-        else:
+        elif response == 'y':
           logzila.Log.NewLine()
           if self._inPlaceRename is False:
             logzila.Log.Info("RENAMER", "Adding files to TV library:\n")

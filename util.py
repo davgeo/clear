@@ -125,8 +125,7 @@ def UserAcceptance(
     response = logzila.Log.Input('UTIL', prompt)
 
     if response.lower() == 'exit':
-      logzila.Log.Info("UTIL", "Program terminated by user 'exit'")
-      sys.exit(0)
+      logzila.Log.Fatal("UTIL", "Program terminated by user 'exit'")
     if response.lower() == 'x':
       return None
     elif response.lower() == 'y' and len(matchList) == 1:

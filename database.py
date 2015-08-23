@@ -45,7 +45,7 @@ class RenamerDB:
                   "Value TEXT)")
 
       db.execute("CREATE TABLE IgnoredDir ("
-                  "DirName TEXT UNIQUE NOT NULL")
+                  "DirName TEXT UNIQUE NOT NULL)")
 
       db.execute("CREATE TABLE SupportedFormat ("
                   "FileFormat TEXT UNIQUE NOT NULL)")
