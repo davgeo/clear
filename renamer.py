@@ -72,8 +72,10 @@ class TVRenamer:
       if self._skipUserInput is True:
         if len(showNameList) == 1:
           showName = showNameList[0]
+          logzila.Log.Info("RENAMER", "Automatic selection of showname: {0}".format(showName))
         else:
           showName = None
+          logzila.Log.Info("RENAMER", "Show skipped - could not make automatic selection of showname".format(showName))
       else:
         showName = util.UserAcceptance(showNameList)
 

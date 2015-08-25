@@ -76,9 +76,9 @@ class DownloadManager:
     if configValue is None:
       logzila.Log.Info("DM", "No {0} exists in database".format(strDescriptor))
       configValue = self._UserUpdateConfigValue(configKey, strDescriptor, isDir)
-    elif self._dbUpdate is True:
+    else:
       logzila.Log.Info("DM", "Got {0} {1} from database".format(strDescriptor, configValue))
-      configValue = self._UserUpdateConfigValue(configKey, strDescriptor, isDir, configValue=dbConfigValue)
+
 
     if not isDir or os.path.isdir(configValue):
       logzila.Log.Info("DM", "Using {0} {1}".format(strDescriptor, configValue))
@@ -135,9 +135,8 @@ class DownloadManager:
     if formatList is None:
       logzila.Log.Info("DM", "No supported formats exist in database")
       formatList = self._UserUpdateSupportedFormats()
-    elif self._dbUpdate is True:
+    else:
       logzila.Log.Info("DM", "Got supported formats from database: {0}".format(formatList))
-      formatList = self._UserUpdateSupportedFormats(formatList)
 
     logzila.Log.Info("DM", "Using supported formats: {0}".format(formatList))
     logzila.Log.DecreaseIndent()
@@ -188,9 +187,8 @@ class DownloadManager:
     if ignoredDirs is None:
       logzila.Log.Info("DM", "No ignored directories exist in database")
       ignoredDirs = self._UserUpdateIgnoredDirs()
-    elif self._dbUpdate is True:
+    else:
       logzila.Log.Info("DM", "Got ignored directories from database: {0}".format(ignoredDirs))
-      ignoredDirs = self._UserUpdateIgnoredDirs(ignoredDirs)
 
     if self._archiveDir not in ignoredDirs:
       ignoredDirs.append(self._archiveDir)
