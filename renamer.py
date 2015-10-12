@@ -282,8 +282,16 @@ class TVRenamer:
                   if int(numResult.pop()) == int(seasonNum):
                     matchDirList.append(dirName)
 
-        listDirPrompt = "enter 'ls' to list all items in show directory"
-        userAcceptance = util.UserAcceptance(matchDirList, promptComment = listDirPrompt, xStrOverride = "to create new season directory")
+        if self._skipUserInput is True:
+          if len(matchDirList) == 1:
+            userAcceptance = matchDirList[0]
+            logzila.Log.Info("RENAMER", "Automatic selection of season directory: {0}".format(seasonDirName))
+          else:
+            userAcceptance = None
+            logzila.Log.Info("RENAMER", "Could not make automatic selection of season directory")
+        else:
+          listDirPrompt = "enter 'ls' to list all items in show directory"
+          userAcceptance = util.UserAcceptance(matchDirList, promptComment = listDirPrompt, xStrOverride = "to create new season directory")
 
         if userAcceptance in matchDirList:
           seasonDirName = userAcceptance
