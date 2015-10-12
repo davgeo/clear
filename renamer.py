@@ -75,7 +75,7 @@ class TVRenamer:
           logzila.Log.Info("RENAMER", "Automatic selection of showname: {0}".format(showName))
         else:
           showName = None
-          logzila.Log.Info("RENAMER", "Show skipped - could not make automatic selection of showname".format(showName))
+          logzila.Log.Info("RENAMER", "Show skipped - could not make automatic selection of showname")
       else:
         showName = util.UserAcceptance(showNameList)
 
