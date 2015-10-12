@@ -374,9 +374,18 @@ class TVRenamer:
           else:
             matchDirList = util.GetBestMatch(matchName, dirList)
 
-          listDirPrompt = "enter 'ls' to list all items in TV library directory"
-          response = util.UserAcceptance(matchDirList, promptComment = listDirPrompt, promptOnly = listDir, xStrOverride = "to create new show directory")
           listDir = False
+
+          if self._skipUserInput is True:
+            if len(matchDirList) == 1:
+              response = matchDirList[0]
+              logzila.Log.Info("RENAMER", "Automatic selection of show directory: {0}".format(response))
+            else:
+              response = None
+              logzila.Log.Info("RENAMER", "Could not make automatic selection of show directory")
+          else:
+            listDirPrompt = "enter 'ls' to list all items in TV library directory"
+            response = util.UserAcceptance(matchDirList, promptComment = listDirPrompt, promptOnly = listDir, xStrOverride = "to create new show directory")
 
         if response is None:
           showDir = self._CreateNewShowDir(tvFile.showInfo.showName)
