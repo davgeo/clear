@@ -15,7 +15,9 @@ import logzila
 class EPGuidesLookup:
   GUIDE_NAME = 'EPGUIDES'
   ALLSHOW_IDLIST_URL = 'http://epguides.com/common/allshows.txt'
-  EPISODE_LOOKUP_URL = 'http://epguides.com/common/exportToCSV.asp'
+  EPISODE_LOOKUP_URL = 'http://epguides.com/common/exportToCSVmaze.asp'
+  ID_LOOKUP_TAG = 'TVmaze'
+  EP_LOOKUP_TAG = 'maze'
 
   logVerbosity = logzila.Verbosity.MINIMAL
 
@@ -83,12 +85,12 @@ class EPGuidesLookup:
         for colCnt, column in enumerate(row):
           if column == 'title':
             titleIndex = colCnt
-          if column == 'tvrage':
-            rageIndex = colCnt
+          if column == self.ID_LOOKUP_TAG:
+            lookupIndex = colCnt
       else:
         # Make list of all titles
         self._showTitleList.append(row[titleIndex])
-        self._showIDList.append(row[rageIndex])
+        self._showIDList.append(row[lookupIndex])
 
   ############################################################################
   # _GetTitleList
@@ -197,7 +199,7 @@ class EPGuidesLookup:
         self._showInfoDict[showID]
       except KeyError:
         logzila.Log.Info("EPGUIDE", "Looking up info for new show: {0}(ID:{1})".format(showName, showID), verbosity=self.logVerbosity)
-        urlData = util.WebLookup(self.EPISODE_LOOKUP_URL, {'rage': showID})
+        urlData = util.WebLookup(self.EPISODE_LOOKUP_URL, {self.EP_LOOKUP_TAG: showID})
         self._showInfoDict[showID] = self._ExtractDataFromShowHtml(urlData)
       else:
         logzila.Log.Info("EPGUIDE", "Reusing show info previous obtained for: {0}({1})".format(showName, showID), verbosity=self.logVerbosity)
