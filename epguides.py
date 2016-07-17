@@ -33,6 +33,38 @@ class EPGuidesLookup:
 
   # *** INTERNAL CLASSES *** #
   ############################################################################
+  # _ParseShowList
+  # Read self._allShowList as csv file and make list of titles and IDs
+  # If checkOnly is True this will only check to ensure the column headers
+  # can be extracted correctly.
+  ############################################################################
+  def _ParseShowList(self, checkOnly=False):
+    showTitleList = []
+    showIDList = []
+
+    csvReader = csv.reader(self._allShowList.splitlines())
+    for rowCnt, row in enumerate(csvReader):
+      if rowCnt == 0:
+        # Get header column index
+        for colCnt, column in enumerate(row):
+          if column == 'title':
+            titleIndex = colCnt
+          if column == self.ID_LOOKUP_TAG:
+            lookupIndex = colCnt
+      else:
+        try:
+          showTitleList.append(row[titleIndex])
+          showIDList.append(row[lookupIndex])
+        except UnboundLocalError:
+          logzila.Log.Fatal("EPGUIDE", "Error detected in EPGUIDES allshows csv content")
+        else:
+          if checkOnly and rowCnt > 1:
+            return True
+    self._showTitleList = showTitleList
+    self._showIDList = showIDList
+    return True
+
+  ############################################################################
   # _GetAllShowList
   # Populates self._allShowList with the EPGuides all show info
   # On the first lookup for a day the information will be loaded from
@@ -52,18 +84,19 @@ class EPGuidesLookup:
       # Download new list from EPGUIDES and strip any leading or trailing whitespace
       self._allShowList = util.WebLookup(self.ALLSHOW_IDLIST_URL).strip()
 
-      # Save to file to avoid multiple url requests in same day
-      with open(saveFilePath, 'w') as allShowsFile:
-        logzila.Log.Info("EPGUIDE", "Adding new EPGUIDES file: {0}".format(saveFilePath), verbosity=self.logVerbosity)
-        allShowsFile.write(self._allShowList)
+      if self._ParseShowList(checkOnly=True):
+        # Save to file to avoid multiple url requests in same day
+        with open(saveFilePath, 'w') as allShowsFile:
+          logzila.Log.Info("EPGUIDE", "Adding new EPGUIDES file: {0}".format(saveFilePath), verbosity=self.logVerbosity)
+          allShowsFile.write(self._allShowList)
 
-      # Delete old copies of this file
-      globPattern = '_epguides_????????.csv'
-      globFilePath = os.path.join(self._saveDir, globPattern)
-      for filePath in glob.glob(globFilePath):
-        if filePath != saveFilePath:
-          logzila.Log.Info("EPGUIDE", "Removing old EPGUIDES file: {0}".format(filePath), verbosity=self.logVerbosity)
-          os.remove(filePath)
+        # Delete old copies of this file
+        globPattern = '_epguides_????????.csv'
+        globFilePath = os.path.join(self._saveDir, globPattern)
+        for filePath in glob.glob(globFilePath):
+          if filePath != saveFilePath:
+            logzila.Log.Info("EPGUIDE", "Removing old EPGUIDES file: {0}".format(filePath), verbosity=self.logVerbosity)
+            os.remove(filePath)
 
   ############################################################################
   # _GetTitleAndIDList
@@ -73,24 +106,7 @@ class EPGuidesLookup:
     # Populate self._allShowList if it does not already exist
     if self._allShowList is None:
       self._GetAllShowList()
-
-    self._showTitleList = []
-    self._showIDList = []
-
-    # Read self._allShowList as csv file
-    csvReader = csv.reader(self._allShowList.splitlines())
-    for rowCnt, row in enumerate(csvReader):
-      if rowCnt == 0:
-        # Get header column index
-        for colCnt, column in enumerate(row):
-          if column == 'title':
-            titleIndex = colCnt
-          if column == self.ID_LOOKUP_TAG:
-            lookupIndex = colCnt
-      else:
-        # Make list of all titles
-        self._showTitleList.append(row[titleIndex])
-        self._showIDList.append(row[lookupIndex])
+    self._ParseShowList()
 
   ############################################################################
   # _GetTitleList
