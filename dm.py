@@ -314,7 +314,7 @@ class DownloadManager:
       logzila.Log.DecreaseIndent()
 
       logzila.Log.Seperator()
-      extract.Extract(extractFileList, self._supportedFormatsList, self._archiveDir)
+      extract.Extract(extractFileList, self._supportedFormatsList, self._archiveDir, self._skipUserInput)
 
     logzila.Log.Seperator()
 
