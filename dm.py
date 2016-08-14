@@ -33,7 +33,8 @@ class DownloadManager:
     self._dbUpdate = False
     self._dbPrint = False
     self._enableExtract = False
-    self._skipUserInput = False
+    self._skipUserInputRename = False
+    self._skipUserInputExtract = False
 
   ############################################################################
   # _UserUpdateConfigValue
@@ -242,7 +243,10 @@ class DownloadManager:
     parser.add_argument('-u', '--update_db', help='provides option to update existing database fields', action="store_true")
     parser.add_argument('-e', '--extract', help='enable extracting of rar files', action="store_true")
     parser.add_argument('-p', '--print_db', help='print contents of database', action="store_true")
-    parser.add_argument('-n', '--no_input', help='automatically accept or skip user input', action="store_true")
+
+    parser.add_argument('-n', '--no_input', help='automatically accept or skip all user input', action="store_true")
+    parser.add_argument('-nr', '--no_input_rename', help='automatically accept or skip user input for guide lookup and rename', action="store_true")
+    parser.add_argument('-ne', '--no_input_extract', help='automatically accept or skip user input for extraction', action="store_true")
 
     parser.add_argument('--test', help='run with test database', action="store_true")
     parser.add_argument('--reset', help='resets database', action="store_true")
@@ -252,8 +256,11 @@ class DownloadManager:
     if args.test:
       self._databasePath = 'test.db'
 
-    if args.no_input:
-      self._skipUserInput = True
+    if args.no_input or args.no_input_rename:
+      self._skipUserInputRename = True
+
+    if args.no_input or args.no_input_extract:
+      self._skipUserInputExtract = True
 
     if args.reset:
       logzila.Log.Info("DM", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE {0}".format(self._databasePath))
@@ -316,7 +323,7 @@ class DownloadManager:
       logzila.Log.DecreaseIndent()
 
       logzila.Log.Seperator()
-      extract.Extract(extractFileList, self._supportedFormatsList, self._archiveDir, self._skipUserInput)
+      extract.Extract(extractFileList, self._supportedFormatsList, self._archiveDir, self._skipUserInputExtract)
 
     logzila.Log.Seperator()
 
@@ -333,7 +340,7 @@ class DownloadManager:
                                   destDir = self._tvDir,
                                   inPlaceRename = self._inPlaceRename,
                                   forceCopy = self._crossSystemCopyEnabled,
-                                  skipUserInput = self._skipUserInput)
+                                  skipUserInput = self._skipUserInputRename)
     tvRenamer.Run()
 
 ############################################################################
