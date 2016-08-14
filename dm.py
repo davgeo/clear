@@ -235,8 +235,6 @@ class DownloadManager:
   ############################################################################
   def _GetArgs(self):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-x', '--test', help='run with test database', action="store_true")
-    parser.add_argument('-r', '--reset', help='resets database', action="store_true")
     parser.add_argument('-c', '--copy', help='enable copying between file systems', action="store_true")
     parser.add_argument('-i', '--inplace', help='rename files in place', action="store_true")
     parser.add_argument('-d', '--debug', help='enable full logging', action="store_true")
@@ -245,6 +243,10 @@ class DownloadManager:
     parser.add_argument('-e', '--extract', help='enable extracting of rar files', action="store_true")
     parser.add_argument('-p', '--print_db', help='print contents of database', action="store_true")
     parser.add_argument('-n', '--no_input', help='automatically accept or skip user input', action="store_true")
+
+    parser.add_argument('--test', help='run with test database', action="store_true")
+    parser.add_argument('--reset', help='resets database', action="store_true")
+
     args = parser.parse_args()
 
     if args.test:

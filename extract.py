@@ -79,8 +79,32 @@ def GetRarPassword(rarArchive, skipUserInput):
   elif response.lower() == 'exit':
     logzila.Log.Fatal("EXTRACT", "Program terminated by user 'exit'")
   else:
-    rarArchive.setpassword(response)
-  return True
+    return response
+
+############################################################################
+# CheckPasswordReuse
+# Check with user for password reuse
+############################################################################
+def CheckPasswordReuse(skipUserInput):
+  logzila.Log.Info("EXTRACT", "RAR files needs password to extract")
+  if skipUserInput is False:
+    prompt = "Enter 't' to reuse the last password for just this file, " \
+             "'a' to reuse for all subsequent files, " \
+             "'n' to enter a new password for this file " \
+             "or 's' to enter a new password for all files: "
+    response = logzila.Log.Input("EXTRACT", prompt)
+    response = util.ValidUserResponse(response, ('t','a','n','s'))
+  else:
+    response = 'a'
+
+  if response.lower() == 's':
+    return -1
+  if response.lower() == 'n':
+    return 0
+  elif response.lower() == 't':
+    return 1
+  elif response.lower() == 'a':
+    return 2
 
 ############################################################################
 # Extract
@@ -98,6 +122,10 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
 
   firstPartExtractList = []
   otherPartSkippedList = []
+
+  lastPassword = False
+  reuseLastPassword = 0
+
   for filePath in fileList:
     logzila.Log.Info("EXTRACT", "{0}".format(filePath))
     logzila.Log.IncreaseIndent()
@@ -116,7 +144,19 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
       rarAuthentication = True
 
       if rarArchive.needs_password():
-        rarAuthentication = GetRarPassword(rarArchive, skipUserInput)
+        if lastPassword and reuseLastPassword in (0, 1):
+          reuseLastPassword = CheckPasswordReuse(skipUserInput)
+
+        if lastPassword and reuseLastPassword in (1, 2):
+          rarArchive.setpassword(lastPassword)
+        else:
+          rarPassword = GetRarPassword(rarArchive, skipUserInput)
+
+          if rarPassword:
+            rarArchive.setpassword(rarPassword)
+            lastPassword = rarPassword
+          else:
+            rarAuthentication = False
 
       if rarAuthentication:
         for f in rarArchive.infolist():
