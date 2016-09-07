@@ -5,8 +5,8 @@ import re
 import types
 
 # Local file imports
-import logzila
-import util
+import clear.logzila as logzila
+import clear.util as util
 
 #################################################
 # ShowInfo
@@ -158,7 +158,7 @@ class TVFile:
         newFileName = newFileName + "_{0}".format(episodeNum)
 
       newFileName = newFileName + ".{0}{1}".format(self.showInfo.episodeName, ext)
-      newFileName = util.StripSpecialCharacters(newFileName)
+      newFileName = clear.util.StripSpecialCharacters(newFileName)
       return newFileName
 
   ############################################################################

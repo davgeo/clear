@@ -5,8 +5,8 @@ import os
 import re
 
 # Local file imports
-import logzila
-import util
+import clear.logzila as logzila
+import clear.util as util
 
 #################################################
 # RenamerDB

@@ -1,28 +1,35 @@
 #!/usr/bin/env python3
+'''
 
-''' DOWNLOAD MANAGER '''
+CLEAR: Command-Line Extract and Rename tool
+
+This provides RAR extraction and renaming of media files.
+
+'''
 # Python default package imports
 import os
 import sys
 import argparse
+import glob
 
 # Local file imports
-import renamer
-import database
-import util
-import logzila
-import extract
+import clear.renamer as renamer
+import clear.database as database
+import clear.tvfile as tvfile
+import clear.util as util
+import clear.logzila as logzila
+import clear.extract as extract
 
 #################################################
-# DownloadManager
+# ClearManager
 #################################################
-class DownloadManager:
+class ClearManager:
   #################################################
   # constructor
   #################################################
   def __init__(self):
     self._db = None
-    self._downloadDir = None
+    self._sourceDir = None
     self._tvDir = None
     self._archiveDir = None
     self._supportedFormatsList = []
@@ -48,7 +55,7 @@ class DownloadManager:
       prompt = "Enter 'y' to use existing {0}, enter a new {0} or 'x' to exit: ".format(strDescriptor)
 
     while newConfigValue is None:
-      response = logzila.Log.Input("DM", prompt)
+      response = logzila.Log.Input("CLEAR", prompt)
 
       if response.lower() == 'x':
         sys.exit(0)
@@ -62,7 +69,7 @@ class DownloadManager:
           newConfigValue = os.path.abspath(response)
           self._db.SetConfigValue(configKey, newConfigValue)
         else:
-          logzila.Log.Info("DM", "{0} is not recognised as a directory".format(response))
+          logzila.Log.Info("CLEAR", "{0} is not recognised as a directory".format(response))
 
     return newConfigValue
 
@@ -70,23 +77,23 @@ class DownloadManager:
   # _GetConfigValue
   ############################################################################
   def _GetConfigValue(self, configKey, strDescriptor, isDir = True):
-    logzila.Log.Info("DM", "Loading {0} from database:".format(strDescriptor))
+    logzila.Log.Info("CLEAR", "Loading {0} from database:".format(strDescriptor))
     logzila.Log.IncreaseIndent()
     configValue = self._db.GetConfigValue(configKey)
 
     if configValue is None:
-      logzila.Log.Info("DM", "No {0} exists in database".format(strDescriptor))
+      logzila.Log.Info("CLEAR", "No {0} exists in database".format(strDescriptor))
       configValue = self._UserUpdateConfigValue(configKey, strDescriptor, isDir)
     else:
-      logzila.Log.Info("DM", "Got {0} {1} from database".format(strDescriptor, configValue))
+      logzila.Log.Info("CLEAR", "Got {0} {1} from database".format(strDescriptor, configValue))
 
 
     if not isDir or os.path.isdir(configValue):
-      logzila.Log.Info("DM", "Using {0} {1}".format(strDescriptor, configValue))
+      logzila.Log.Info("CLEAR", "Using {0} {1}".format(strDescriptor, configValue))
       logzila.Log.DecreaseIndent()
       return configValue
     else:
-      logzila.Log.Info("DM", "Exiting... {0} is not recognised as a directory".format(configValue))
+      logzila.Log.Info("CLEAR", "Exiting... {0} is not recognised as a directory".format(configValue))
       sys.exit(0)
 
   ############################################################################
@@ -101,7 +108,7 @@ class DownloadManager:
                              "'r' to reset format list, " \
                              "'f' to finish or " \
                              "'x' to exit: "
-      response = logzila.Log.Input("DM", prompt)
+      response = logzila.Log.Input("CLEAR", prompt)
 
       if response.lower() == 'x':
         sys.exit(0)
@@ -129,17 +136,17 @@ class DownloadManager:
   # _GetSupportedFormats
   ############################################################################
   def _GetSupportedFormats(self):
-    logzila.Log.Info("DM", "Loading supported formats from database:")
+    logzila.Log.Info("CLEAR", "Loading supported formats from database:")
     logzila.Log.IncreaseIndent()
     formatList = self._db.GetSupportedFormats()
 
     if formatList is None:
-      logzila.Log.Info("DM", "No supported formats exist in database")
+      logzila.Log.Info("CLEAR", "No supported formats exist in database")
       formatList = self._UserUpdateSupportedFormats()
     else:
-      logzila.Log.Info("DM", "Got supported formats from database: {0}".format(formatList))
+      logzila.Log.Info("CLEAR", "Got supported formats from database: {0}".format(formatList))
 
-    logzila.Log.Info("DM", "Using supported formats: {0}".format(formatList))
+    logzila.Log.Info("CLEAR", "Using supported formats: {0}".format(formatList))
     logzila.Log.DecreaseIndent()
     return formatList
 
@@ -155,7 +162,7 @@ class DownloadManager:
                            "'r' to reset directory list, " \
                            "'f' to finish or " \
                            "'x' to exit: "
-      response = logzila.Log.Input("DM", prompt)
+      response = logzila.Log.Input("CLEAR", prompt)
 
       if response.lower() == 'x':
         sys.exit(0)
@@ -181,20 +188,20 @@ class DownloadManager:
   # GetIgnoredDirs
   ############################################################################
   def _GetIgnoredDirs(self):
-    logzila.Log.Info("DM", "Loading ignored directories from database:")
+    logzila.Log.Info("CLEAR", "Loading ignored directories from database:")
     logzila.Log.IncreaseIndent()
     ignoredDirs = self._db.GetIgnoredDirs()
 
     if ignoredDirs is None:
-      logzila.Log.Info("DM", "No ignored directories exist in database")
+      logzila.Log.Info("CLEAR", "No ignored directories exist in database")
       ignoredDirs = self._UserUpdateIgnoredDirs()
     else:
-      logzila.Log.Info("DM", "Got ignored directories from database: {0}".format(ignoredDirs))
+      logzila.Log.Info("CLEAR", "Got ignored directories from database: {0}".format(ignoredDirs))
 
     if self._archiveDir not in ignoredDirs:
       ignoredDirs.append(self._archiveDir)
 
-    logzila.Log.Info("DM", "Using ignored directories: {0}".format(ignoredDirs))
+    logzila.Log.Info("CLEAR", "Using ignored directories: {0}".format(ignoredDirs))
     logzila.Log.DecreaseIndent()
     return ignoredDirs
 
@@ -203,11 +210,11 @@ class DownloadManager:
   ############################################################################
   def _GetDatabaseConfig(self):
     logzila.Log.Seperator()
-    logzila.Log.Info("DM", "Getting configuration variables...")
+    logzila.Log.Info("CLEAR", "Getting configuration variables...")
     logzila.Log.IncreaseIndent()
 
-    # DOWNLOAD DIRECTORY
-    self._downloadDir = self._GetConfigValue('DownloadDir', 'download directory')
+    # SOURCE DIRECTORY
+    self._sourceDir = self._GetConfigValue('SourceDir', 'source directory')
 
     # TV DIRECTORY
     if self._inPlaceRename is False:
@@ -223,12 +230,12 @@ class DownloadManager:
     self._ignoredDirsList = self._GetIgnoredDirs()
 
     logzila.Log.NewLine()
-    logzila.Log.Info("DM", "Configuation is:")
+    logzila.Log.Info("CLEAR", "Configuation is:")
     logzila.Log.IncreaseIndent()
-    logzila.Log.Info("DM", "Download directory = {0}".format(self._downloadDir))
-    logzila.Log.Info("DM", "TV directory = {0}".format(self._tvDir))
-    logzila.Log.Info("DM", "Supported formats = {0}".format(self._supportedFormatsList))
-    logzila.Log.Info("DM", "Ignored directory list = {0}".format(self._ignoredDirsList))
+    logzila.Log.Info("CLEAR", "Source directory = {0}".format(self._sourceDir))
+    logzila.Log.Info("CLEAR", "TV directory = {0}".format(self._tvDir))
+    logzila.Log.Info("CLEAR", "Supported formats = {0}".format(self._supportedFormatsList))
+    logzila.Log.Info("CLEAR", "Ignored directory list = {0}".format(self._ignoredDirsList))
     logzila.Log.ResetIndent()
 
   ############################################################################
@@ -263,8 +270,8 @@ class DownloadManager:
       self._skipUserInputExtract = True
 
     if args.reset:
-      logzila.Log.Info("DM", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE {0}".format(self._databasePath))
-      response = logzila.Log.Input("DM", "Are you sure you want to proceed [y/n]? ")
+      logzila.Log.Info("CLEAR", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE {0}".format(self._databasePath))
+      response = logzila.Log.Input("CLEAR", "Are you sure you want to proceed [y/n]? ")
       if response.lower() == 'y':
         if(os.path.isfile(self._databasePath)):
           os.remove(self._databasePath)
@@ -293,14 +300,36 @@ class DownloadManager:
       self._enableExtract = True
 
   ############################################################################
+  # GetSupportedFilesInDir
+  # Get all supported files from given directory folder
+  ############################################################################
+  def _GetSupportedFilesInDir(self, fileDir, fileList, supportedFormatList, ignoreDirList):
+    logzila.Log.Info("CLEAR", "Parsing file directory: {0}".format(fileDir))
+    if os.path.isdir(fileDir) is True:
+      for globPath in glob.glob(os.path.join(fileDir, '*')):
+        if util.FileExtensionMatch(globPath, supportedFormatList):
+          newFile = tvfile.TVFile(globPath)
+          if newFile.GetShowDetails():
+            fileList.append(newFile)
+        elif os.path.isdir(globPath):
+          if(os.path.basename(globPath) in ignoreDirList):
+            logzila.Log.Info("CLEAR", "Skipping ignored directory: {0}".format(globPath))
+          else:
+            self._GetSupportedFilesInDir(globPath, fileList, supportedFormatList, ignoreDirList)
+        else:
+          logzila.Log.Info("CLEAR", "Ignoring unsupported file or folder: {0}".format(globPath))
+    else:
+      logzila.Log.Info("CLEAR", "Invalid non-directory path given to parse")
+
+  ############################################################################
   # Run
-  # Get all tv files in download directory
+  # Get all tv files in source directory
   # Run renamer process
   ############################################################################
   def Run(self):
     self._GetArgs()
 
-    logzila.Log.Info("DM", "Using database: {0}".format(self._databasePath))
+    logzila.Log.Info("CLEAR", "Using database: {0}".format(self._databasePath))
     self._db = database.RenamerDB(self._databasePath)
 
     if self._dbPrint or self._dbUpdate:
@@ -317,9 +346,9 @@ class DownloadManager:
       logzila.Log.Seperator()
 
       extractFileList = []
-      logzila.Log.Info("DM", "Parsing download directory for compressed files")
+      logzila.Log.Info("CLEAR", "Parsing source directory for compressed files")
       logzila.Log.IncreaseIndent()
-      extract.GetCompressedFilesInDir(self._downloadDir, extractFileList, self._ignoredDirsList)
+      extract.GetCompressedFilesInDir(self._sourceDir, extractFileList, self._ignoredDirsList)
       logzila.Log.DecreaseIndent()
 
       logzila.Log.Seperator()
@@ -328,9 +357,9 @@ class DownloadManager:
     logzila.Log.Seperator()
 
     tvFileList = []
-    logzila.Log.Info("DM", "Parsing download directory for compatible files")
+    logzila.Log.Info("CLEAR", "Parsing source directory for compatible files")
     logzila.Log.IncreaseIndent()
-    util.GetSupportedFilesInDir(self._downloadDir, tvFileList, self._supportedFormatsList, self._ignoredDirsList)
+    self._GetSupportedFilesInDir(self._sourceDir, tvFileList, self._supportedFormatsList, self._ignoredDirsList)
     logzila.Log.DecreaseIndent()
 
     tvRenamer = renamer.TVRenamer(self._db,
@@ -347,7 +376,7 @@ class DownloadManager:
 # main
 ############################################################################
 def main():
-  prog = DownloadManager()
+  prog = ClearManager()
   prog.Run()
 
 ############################################################################
@@ -355,6 +384,6 @@ def main():
 ############################################################################
 if __name__ == "__main__":
   if sys.version_info < (3,4):
-    sys.stdout.write("[DM] Incompatible Python version detected - Python 3.4 or greater is required.\n")
+    sys.stdout.write("[CLEAR] Incompatible Python version detected - Python 3.4 or greater is required.\n")
   else:
     main()

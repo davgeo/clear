@@ -6,11 +6,11 @@ import re
 import errno
 
 # Local file imports
-import epguides
-import tvfile
-import database
-import logzila
-import util
+import clear.epguides as epguides
+import clear.tvfile as tvfile
+import clear.database as database
+import clear.logzila as logzila
+import clear.util as util
 
 #################################################
 # TVRenamer

@@ -3,3 +3,24 @@
 
 # Compiled python files
 *.pyc
+
+# Virtualenv directory
+pyenv*
+
+# Ignore cached directories
+__pycache__
+
+# Egg info directories
+*.egg-info/
+
+# Build directory
+build/
+
+# Dist directory
+dist/
+
+# Temporary csv files
+*.csv
+
+# Database files
+*.db

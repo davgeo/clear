@@ -1,0 +1,2 @@
+rarfile==2.7
+requests==2.6.0

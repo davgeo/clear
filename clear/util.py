@@ -2,7 +2,6 @@
 
 # Python default package imports
 import difflib
-import glob
 import os
 import re
 import sys
@@ -12,8 +11,7 @@ import shutil
 import requests
 
 # Local file imports
-import tvfile
-import logzila
+import clear.logzila as logzila
 
 ############################################################################
 # RemoveEmptyDirectoryTree
@@ -243,26 +241,4 @@ def ArchiveProcessedFile(filePath, archiveDir):
 ############################################################################
 def FileExtensionMatch(filePath, supportedFileTypeList):
   return (os.path.splitext(filePath)[1] in supportedFileTypeList)
-
-############################################################################
-# GetSupportedFilesInDir
-# Get all supported files from given directory folder
-############################################################################
-def GetSupportedFilesInDir(fileDir, fileList, supportedFormatList, ignoreDirList):
-  logzila.Log.Info("UTIL", "Parsing file directory: {0}".format(fileDir))
-  if os.path.isdir(fileDir) is True:
-    for globPath in glob.glob(os.path.join(fileDir, '*')):
-      if FileExtensionMatch(globPath, supportedFormatList):
-        newFile = tvfile.TVFile(globPath)
-        if newFile.GetShowDetails():
-          fileList.append(newFile)
-      elif os.path.isdir(globPath):
-        if(os.path.basename(globPath) in ignoreDirList):
-          logzila.Log.Info("UTIL", "Skipping ignored directory: {0}".format(globPath))
-        else:
-          GetSupportedFilesInDir(globPath, fileList, supportedFormatList, ignoreDirList)
-      else:
-        logzila.Log.Info("UTIL", "Ignoring unsupported file or folder: {0}".format(globPath))
-  else:
-    logzila.Log.Info("UTIL", "Invalid non-directory path given to parse")
 

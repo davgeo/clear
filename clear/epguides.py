@@ -6,8 +6,8 @@ import csv
 import datetime
 
 # Local file imports
-import util
-import logzila
+import clear.util as util
+import clear.logzila as logzila
 
 #################################################
 # EPGuidesLookup

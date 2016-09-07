@@ -11,8 +11,8 @@ import re
 import rarfile
 
 # Local file imports
-import logzila
-import util
+import clear.logzila as logzila
+import clear.util as util
 
 # Update rarfile variables
 rarfile.PATH_SEP = os.sep
@@ -193,14 +193,3 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
     finally:
       logzila.Log.DecreaseIndent()
   logzila.Log.DecreaseIndent()
-
-############################################################################
-# default process if run as standalone
-############################################################################
-if __name__ == "__main__":
-  if sys.version_info < (3,4):
-    sys.stdout.write("[DM] Incompatible Python version detected - Python 3.4 or greater is required.\n")
-  else:
-    fileList = []
-    GetCompressedFilesInDir('test_dir/downloads', fileList, ['DONE', 'PROCESSED'])
-    Extract(fileList, (".mkv", ".mp4", ".avi", ".srt"), False)
