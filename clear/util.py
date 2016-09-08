@@ -11,7 +11,7 @@ import shutil
 import requests
 
 # Local file imports
-import clear.logzila as logzila
+import clear.logzilla as logzilla
 
 ############################################################################
 # RemoveEmptyDirectoryTree
@@ -19,16 +19,16 @@ import clear.logzila as logzila
 ############################################################################
 def RemoveEmptyDirectoryTree(path, silent = False, recursion = 0):
   if not silent and recursion is 0:
-    logzila.Log.Info("UTIL", "Starting removal of empty directory tree at: {0}".format(path))
+    logzilla.Log.Info("UTIL", "Starting removal of empty directory tree at: {0}".format(path))
   try:
     os.rmdir(path)
   except OSError:
     if not silent:
-      logzila.Log.Info("UTIL", "Removal of empty directory tree terminated at: {0}".format(path))
+      logzilla.Log.Info("UTIL", "Removal of empty directory tree terminated at: {0}".format(path))
     return
   else:
     if not silent:
-      logzila.Log.Info("UTIL", "Directory deleted: {0}".format(path))
+      logzilla.Log.Info("UTIL", "Directory deleted: {0}".format(path))
     RemoveEmptyDirectoryTree(os.path.dirname(path), silent, recursion + 1)
 
 ############################################################################
@@ -40,7 +40,7 @@ def CheckPathExists(path):
   root, ext = os.path.splitext(path)
   while os.path.exists(path):
     i = i + 1
-    logzila.Log.Info("UTIL", "Path {0} already exists".format(path))
+    logzilla.Log.Info("UTIL", "Path {0} already exists".format(path))
     path = "{0}_{1}".format(root, i) + ext
   return path
 
@@ -51,7 +51,7 @@ def CheckPathExists(path):
 # if stripAll is set
 ############################################################################
 def StripSpecialCharacters(string, stripAll = False):
-  logzila.Log.Info("UTIL", "Stripping any special characters from {0}".format(string), verbosity=logzila.Verbosity.MINIMAL)
+  logzilla.Log.Info("UTIL", "Stripping any special characters from {0}".format(string), verbosity=logzilla.Verbosity.MINIMAL)
   string = string.strip()
   string = re.sub('[&]', 'and', string)
   string = re.sub('[@#$%^&*{};:,/<>?\|`~=+]', '', string)
@@ -61,7 +61,7 @@ def StripSpecialCharacters(string, stripAll = False):
     string = re.sub('[_.-]', '', string)
     string = re.sub('\s', '', string)
 
-  logzila.Log.Info("UTIL", "New string is: {0}".format(string), verbosity=logzila.Verbosity.MINIMAL)
+  logzilla.Log.Info("UTIL", "New string is: {0}".format(string), verbosity=logzilla.Verbosity.MINIMAL)
   return string
 
 #################################################
@@ -69,7 +69,7 @@ def StripSpecialCharacters(string, stripAll = False):
 #################################################
 def CheckEmptyResponse(response):
   while response.strip() == '':
-    response = logzila.Log.Input("RENAMER", "An empty response was detected - please reenter a valid response: ")
+    response = logzilla.Log.Input("RENAMER", "An empty response was detected - please reenter a valid response: ")
   return response
 
 #################################################
@@ -80,7 +80,7 @@ def ValidUserResponse(response, validList):
     return response
   else:
     prompt = "Unknown response given - please reenter one of [{0}]: ".format('/'.join(validList))
-    response = logzila.Log.Input("DM", prompt)
+    response = logzilla.Log.Input("DM", prompt)
     return ValidUserResponse(response, validList)
 
 ############################################################################
@@ -96,15 +96,15 @@ def UserAcceptance(
   matchString = ', '.join(matchList)
 
   if len(matchList) == 1:
-    logzila.Log.Info("UTIL", "Match found: {0}".format(matchString))
+    logzilla.Log.Info("UTIL", "Match found: {0}".format(matchString))
     prompt = "Enter 'y' to accept this match or e"
   elif len(matchList) > 1:
-    logzila.Log.Info("UTIL", "Multiple possible matches found: {0}".format(matchString))
+    logzilla.Log.Info("UTIL", "Multiple possible matches found: {0}".format(matchString))
     prompt = "Enter correct match from list or e"
     option = 2
   else:
     if promptOnly is False:
-      logzila.Log.Info("UTIL", "No match found")
+      logzilla.Log.Info("UTIL", "No match found")
     prompt = "E"
     if not recursiveLookup:
       return None
@@ -120,10 +120,10 @@ def UserAcceptance(
     prompt = prompt + " ({0}): ".format(promptComment)
 
   while(1):
-    response = logzila.Log.Input('UTIL', prompt)
+    response = logzilla.Log.Input('UTIL', prompt)
 
     if response.lower() == 'exit':
-      logzila.Log.Fatal("UTIL", "Program terminated by user 'exit'")
+      logzilla.Log.Fatal("UTIL", "Program terminated by user 'exit'")
     if response.lower() == 'x':
       return None
     elif response.lower() == 'y' and len(matchList) == 1:
@@ -207,9 +207,9 @@ def GetBestStringMatchValue(string1, string2):
 ############################################################################
 def WebLookup(url, urlQuery=None, utf8=True):
   # Look up webpage at given url with optional query string
-  logzila.Log.Info("UTIL", "Looking up info from URL:{0} with QUERY:{1})".format(url, urlQuery), verbosity=logzila.Verbosity.MINIMAL)
+  logzilla.Log.Info("UTIL", "Looking up info from URL:{0} with QUERY:{1})".format(url, urlQuery), verbosity=logzilla.Verbosity.MINIMAL)
   response = requests.get(url, params=urlQuery)
-  logzila.Log.Info("UTIL", "Full url: {0}".format(response.url), verbosity=logzila.Verbosity.MINIMAL)
+  logzilla.Log.Info("UTIL", "Full url: {0}".format(response.url), verbosity=logzilla.Verbosity.MINIMAL)
   if utf8 is True:
     response.encoding = 'utf-8'
   if(response.status_code == requests.codes.ok):
@@ -223,17 +223,17 @@ def WebLookup(url, urlQuery=None, utf8=True):
 ############################################################################
 def ArchiveProcessedFile(filePath, archiveDir):
   targetDir = os.path.join(os.path.dirname(filePath), archiveDir)
-  logzila.Log.Info("UTIL", "Moving file to archive directory:")
-  logzila.Log.IncreaseIndent()
-  logzila.Log.Info("UTIL", "FROM: {0}".format(filePath))
-  logzila.Log.Info("UTIL", "TO:   {0}".format(os.path.join(targetDir, os.path.basename(filePath))))
-  logzila.Log.DecreaseIndent()
+  logzilla.Log.Info("UTIL", "Moving file to archive directory:")
+  logzilla.Log.IncreaseIndent()
+  logzilla.Log.Info("UTIL", "FROM: {0}".format(filePath))
+  logzilla.Log.Info("UTIL", "TO:   {0}".format(os.path.join(targetDir, os.path.basename(filePath))))
+  logzilla.Log.DecreaseIndent()
   os.makedirs(targetDir, exist_ok=True)
   try:
     shutil.move(filePath, targetDir)
   except shutil.Error as ex4:
     err = ex4.args[0]
-    logzila.Log.Info("UTIL", "Move to archive directory failed - Shutil Error: {0}".format(err))
+    logzilla.Log.Info("UTIL", "Move to archive directory failed - Shutil Error: {0}".format(err))
 
 ############################################################################
 # FileExtensionMatch
