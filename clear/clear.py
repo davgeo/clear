@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 '''
 
 CLEAR: Command-Line Extract and Rename tool

@@ -1,4 +1,10 @@
-''' TV File Object '''
+'''
+
+tvfile.py
+
+Class objects used to store TV file and show information
+
+'''
 # Python default package imports
 import os
 import re

@@ -1,4 +1,10 @@
-''' DATABASE '''
+'''
+
+database.py
+
+SQLite database control
+
+'''
 # Python default package imports
 import sqlite3
 import os

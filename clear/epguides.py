@@ -1,4 +1,10 @@
-''' EPGUIDES '''
+'''
+
+epguides.py
+
+Lookup TV guide information from epguides
+
+'''
 # Python default package imports
 import os
 import glob

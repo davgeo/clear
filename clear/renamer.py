@@ -1,4 +1,10 @@
-''' RENAMER '''
+'''
+
+renamer.py
+
+TV episode renamer
+
+'''
 # Python default package imports
 import shutil
 import os

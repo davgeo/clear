@@ -1,5 +1,10 @@
-''' Utility functions '''
+'''
 
+util.py
+
+Utility functions
+
+'''
 # Python default package imports
 import difflib
 import os

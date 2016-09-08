@@ -1,6 +1,10 @@
-#!/usr/bin/env python3
+'''
 
-''' RAR EXTRACTER '''
+extract.py
+
+RAR extraction methods
+
+'''
 # Python default package imports
 import sys
 import os
