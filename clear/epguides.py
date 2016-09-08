@@ -5,9 +5,11 @@ import glob
 import csv
 import datetime
 
+# Third-party package imports
+import logzilla
+
 # Local file imports
 import clear.util as util
-import clear.logzilla as logzilla
 
 #################################################
 # EPGuidesLookup

@@ -4,8 +4,10 @@ import os
 import re
 import types
 
+# Third-party package imports
+import logzilla
+
 # Local file imports
-import clear.logzilla as logzilla
 import clear.util as util
 
 #################################################

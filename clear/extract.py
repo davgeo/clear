@@ -7,11 +7,11 @@ import os
 import glob
 import re
 
-# Third-party python package imports
+# Third-party package imports
 import rarfile
+import logzilla
 
 # Local file imports
-import clear.logzilla as logzilla
 import clear.util as util
 
 # Update rarfile variables

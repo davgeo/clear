@@ -7,11 +7,9 @@ import re
 import sys
 import shutil
 
-# Python custom package imports
+# Third-party package imports
 import requests
-
-# Local file imports
-import clear.logzilla as logzilla
+import logzilla
 
 ############################################################################
 # RemoveEmptyDirectoryTree

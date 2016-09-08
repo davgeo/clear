@@ -5,11 +5,13 @@ import os
 import re
 import errno
 
+# Third-party package imports
+import logzilla
+
 # Local file imports
 import clear.epguides as epguides
 import clear.tvfile as tvfile
 import clear.database as database
-import clear.logzilla as logzilla
 import clear.util as util
 
 #################################################

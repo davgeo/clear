@@ -30,6 +30,7 @@ This is a python package and requires the following:
 - Python 3.4+
 - Python requests package
 - Python rarfile package
+- Python logzilla package
 
 Installation
 ---------------

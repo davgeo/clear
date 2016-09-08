@@ -4,8 +4,10 @@ import sqlite3
 import os
 import re
 
+# Third-party package imports
+import logzilla
+
 # Local file imports
-import clear.logzilla as logzilla
 import clear.util as util
 
 #################################################

@@ -12,12 +12,14 @@ import sys
 import argparse
 import glob
 
+# Third-party package imports
+import logzilla
+
 # Local file imports
 import clear.renamer as renamer
 import clear.database as database
 import clear.tvfile as tvfile
 import clear.util as util
-import clear.logzilla as logzilla
 import clear.extract as extract
 
 #################################################
