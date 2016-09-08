@@ -214,10 +214,11 @@ class ClearManager:
     logzila.Log.IncreaseIndent()
 
     # SOURCE DIRECTORY
-    self._sourceDir = self._GetConfigValue('SourceDir', 'source directory')
+    if self._sourceDir is None:
+      self._sourceDir = self._GetConfigValue('SourceDir', 'source directory')
 
     # TV DIRECTORY
-    if self._inPlaceRename is False:
+    if self._inPlaceRename is False and self._tvDir is None:
       self._tvDir = self._GetConfigValue('TVDir', 'tv directory')
 
     # ARCHIVE DIRECTORY
@@ -243,17 +244,23 @@ class ClearManager:
   ############################################################################
   def _GetArgs(self):
     parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--src', help='override database source directory')
+    parser.add_argument('-d', '--dst', help='override database destination directory')
+
+    parser.add_argument('-e', '--extract', help='enable extracting of rar files', action="store_true")
+
     parser.add_argument('-c', '--copy', help='enable copying between file systems', action="store_true")
     parser.add_argument('-i', '--inplace', help='rename files in place', action="store_true")
-    parser.add_argument('-d', '--debug', help='enable full logging', action="store_true")
-    parser.add_argument('-t', '--tags', help='enable tags on log info', action="store_true")
+
     parser.add_argument('-u', '--update_db', help='provides option to update existing database fields', action="store_true")
-    parser.add_argument('-e', '--extract', help='enable extracting of rar files', action="store_true")
     parser.add_argument('-p', '--print_db', help='print contents of database', action="store_true")
 
     parser.add_argument('-n', '--no_input', help='automatically accept or skip all user input', action="store_true")
     parser.add_argument('-nr', '--no_input_rename', help='automatically accept or skip user input for guide lookup and rename', action="store_true")
     parser.add_argument('-ne', '--no_input_extract', help='automatically accept or skip user input for extraction', action="store_true")
+
+    parser.add_argument('--debug', help='enable full logging', action="store_true")
+    parser.add_argument('--tags', help='enable tags on log info', action="store_true")
 
     parser.add_argument('--test', help='run with test database', action="store_true")
     parser.add_argument('--reset', help='resets database', action="store_true")
@@ -298,6 +305,18 @@ class ClearManager:
 
     if args.extract:
       self._enableExtract = True
+
+    if args.src:
+      if os.path.isdir(args.src):
+        self._sourceDir = args.src
+      else:
+        logzila.Log.Fatal("CLEAR", 'Source directory argument is not recognised as a directory: {}'.format(args.src))
+
+    if args.dst:
+      if os.path.isdir(args.dst):
+        self._tvDir = args.dst
+      else:
+        logzila.Log.Fatal("CLEAR", 'Target directory argument is not recognised as a directory: {}'.format(args.dst))
 
   ############################################################################
   # GetSupportedFilesInDir

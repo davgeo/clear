@@ -158,7 +158,7 @@ class TVFile:
         newFileName = newFileName + "_{0}".format(episodeNum)
 
       newFileName = newFileName + ".{0}{1}".format(self.showInfo.episodeName, ext)
-      newFileName = clear.util.StripSpecialCharacters(newFileName)
+      newFileName = util.StripSpecialCharacters(newFileName)
       return newFileName
 
   ############################################################################
