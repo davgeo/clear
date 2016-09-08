@@ -9,19 +9,35 @@ media files.
 Currently supported functionality:
 
 - Extraction of video files from RAR packages
-- Renaming of TV episodes using EPGuides
+- Renaming of TV episodes using epguides
+
+Installation
+---------------
+Install using pip:
+
+.. code-block:: bash
+
+    $ pip install clear
 
 Example
 -------
+If installed using pip you can run this script using:
+
 .. code-block:: bash
 
-  python clear-runner.py <ARGS>
+  python -m clear <ARGS>
 
 To see available arguments use the help option:
 
 .. code-block:: bash
 
-  python clear-runner.py --help
+  python -m clear --help
+
+If running directly from the source the wrapper clear-runner script can be used:
+
+.. code-block:: bash
+
+  python clear-runner.py <ARGS>
 
 Requirements
 ---------------
@@ -31,14 +47,6 @@ This is a python package and requires the following:
 - Python requests package
 - Python rarfile package
 - Python logzilla package
-
-Installation
----------------
-Install using pip:
-
-.. code-block:: bash
-
-    $ pip install clear
 
 Requests, Issues, Bugs or Suggestions
 ---------------------------------------------
