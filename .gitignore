@@ -24,3 +24,7 @@ dist/
 
 # Database files
 *.db
+
+# Coverage files
+htmlcov
+.coverage
