@@ -12,7 +12,7 @@ import csv
 import datetime
 
 # Third-party package imports
-import logzilla
+import goodlogging
 
 # Local file imports
 import clear.util as util
@@ -27,7 +27,7 @@ class EPGuidesLookup:
   ID_LOOKUP_TAG = 'TVmaze'
   EP_LOOKUP_TAG = 'maze'
 
-  logVerbosity = logzilla.Verbosity.MINIMAL
+  logVerbosity = goodlogging.Verbosity.MINIMAL
 
   #################################################
   # constructor
@@ -64,7 +64,7 @@ class EPGuidesLookup:
           showTitleList.append(row[titleIndex])
           showIDList.append(row[lookupIndex])
         except UnboundLocalError:
-          logzilla.Log.Fatal("EPGUIDE", "Error detected in EPGUIDES allshows csv content")
+          goodlogging.Log.Fatal("EPGUIDE", "Error detected in EPGUIDES allshows csv content")
         else:
           if checkOnly and rowCnt > 1:
             return True
@@ -95,7 +95,7 @@ class EPGuidesLookup:
       if self._ParseShowList(checkOnly=True):
         # Save to file to avoid multiple url requests in same day
         with open(saveFilePath, 'w') as allShowsFile:
-          logzilla.Log.Info("EPGUIDE", "Adding new EPGUIDES file: {0}".format(saveFilePath), verbosity=self.logVerbosity)
+          goodlogging.Log.Info("EPGUIDE", "Adding new EPGUIDES file: {0}".format(saveFilePath), verbosity=self.logVerbosity)
           allShowsFile.write(self._allShowList)
 
         # Delete old copies of this file
@@ -103,7 +103,7 @@ class EPGuidesLookup:
         globFilePath = os.path.join(self._saveDir, globPattern)
         for filePath in glob.glob(globFilePath):
           if filePath != saveFilePath:
-            logzilla.Log.Info("EPGUIDE", "Removing old EPGUIDES file: {0}".format(filePath), verbosity=self.logVerbosity)
+            goodlogging.Log.Info("EPGUIDE", "Removing old EPGUIDES file: {0}".format(filePath), verbosity=self.logVerbosity)
             os.remove(filePath)
 
   ############################################################################
@@ -194,7 +194,7 @@ class EPGuidesLookup:
           pass
         else:
           if int(row[seasonIndex]) == int(season) and int(row[episodeIndex]) == int(episode):
-            logzilla.Log.Info("EPGUIDE", "Episode name is {0}".format(row[titleIndex]), verbosity=self.logVerbosity)
+            goodlogging.Log.Info("EPGUIDE", "Episode name is {0}".format(row[titleIndex]), verbosity=self.logVerbosity)
             return row[titleIndex]
     return None
 
@@ -204,7 +204,7 @@ class EPGuidesLookup:
   # Get closest show name match to a given string
   ############################################################################
   def ShowNameLookUp(self, string):
-    logzilla.Log.Info("EPGUIDES", "Looking up show name match for string '{0}' in guide".format(string), verbosity=self.logVerbosity)
+    goodlogging.Log.Info("EPGUIDES", "Looking up show name match for string '{0}' in guide".format(string), verbosity=self.logVerbosity)
     self._GetTitleList()
     showName = util.GetBestMatch(string, self._showTitleList)
     return(showName)
@@ -215,20 +215,20 @@ class EPGuidesLookup:
   # and episode number
   ############################################################################
   def EpisodeNameLookUp(self, showName, season, episode):
-    logzilla.Log.Info("EPGUIDE", "Looking up episode name for {0} S{1}E{2}".format(showName, season, episode), verbosity=self.logVerbosity)
-    logzilla.Log.IncreaseIndent()
+    goodlogging.Log.Info("EPGUIDE", "Looking up episode name for {0} S{1}E{2}".format(showName, season, episode), verbosity=self.logVerbosity)
+    goodlogging.Log.IncreaseIndent()
     showID = self._GetShowID(showName)
     if showID is not None:
       try:
         self._showInfoDict[showID]
       except KeyError:
-        logzilla.Log.Info("EPGUIDE", "Looking up info for new show: {0}(ID:{1})".format(showName, showID), verbosity=self.logVerbosity)
+        goodlogging.Log.Info("EPGUIDE", "Looking up info for new show: {0}(ID:{1})".format(showName, showID), verbosity=self.logVerbosity)
         urlData = util.WebLookup(self.EPISODE_LOOKUP_URL, {self.EP_LOOKUP_TAG: showID})
         self._showInfoDict[showID] = self._ExtractDataFromShowHtml(urlData)
       else:
-        logzilla.Log.Info("EPGUIDE", "Reusing show info previous obtained for: {0}({1})".format(showName, showID), verbosity=self.logVerbosity)
+        goodlogging.Log.Info("EPGUIDE", "Reusing show info previous obtained for: {0}({1})".format(showName, showID), verbosity=self.logVerbosity)
       finally:
         episodeName = self._GetEpisodeName(showID, season, episode)
-        logzilla.Log.DecreaseIndent()
+        goodlogging.Log.DecreaseIndent()
         return episodeName
-    logzilla.Log.DecreaseIndent()
+    goodlogging.Log.DecreaseIndent()

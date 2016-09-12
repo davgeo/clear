@@ -8,8 +8,6 @@ import sqlite3
 import unittest
 import unittest.mock as mock
 
-import logzilla
-
 import clear.database
 
 import test_lib
@@ -256,7 +254,7 @@ class ClearDatabase(unittest.TestCase):
   # Test manual update method
   # (with mocked user reponse)
   #################################################
-  @mock.patch('logzilla.Log.Input')
+  @mock.patch('goodlogging.Log.Input')
   def test_db_ManualUpdateTables(self, mock_input):
     # List and exit
     mock_input.side_effect = ['ls', 'x']

@@ -12,7 +12,7 @@ with open(os.path.join(path, 'requirements.txt')) as f:
   requirements = f.read().splitlines()
 
 setup(name='clear',
-      version='1.0.0',
+      version='1.0.1',
       description='CLEAR: Command-line extract and rename utility',
       long_description=long_description,
       url='http://github.com/davgeo/clear',

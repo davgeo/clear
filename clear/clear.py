@@ -12,7 +12,7 @@ import argparse
 import glob
 
 # Third-party package imports
-import logzilla
+import goodlogging
 
 # Local file imports
 import clear.renamer as renamer
@@ -56,7 +56,7 @@ class ClearManager:
       prompt = "Enter 'y' to use existing {0}, enter a new {0} or 'x' to exit: ".format(strDescriptor)
 
     while newConfigValue is None:
-      response = logzilla.Log.Input("CLEAR", prompt)
+      response = goodlogging.Log.Input("CLEAR", prompt)
 
       if response.lower() == 'x':
         sys.exit(0)
@@ -70,7 +70,7 @@ class ClearManager:
           newConfigValue = os.path.abspath(response)
           self._db.SetConfigValue(configKey, newConfigValue)
         else:
-          logzilla.Log.Info("CLEAR", "{0} is not recognised as a directory".format(response))
+          goodlogging.Log.Info("CLEAR", "{0} is not recognised as a directory".format(response))
 
     return newConfigValue
 
@@ -78,23 +78,23 @@ class ClearManager:
   # _GetConfigValue
   ############################################################################
   def _GetConfigValue(self, configKey, strDescriptor, isDir = True):
-    logzilla.Log.Info("CLEAR", "Loading {0} from database:".format(strDescriptor))
-    logzilla.Log.IncreaseIndent()
+    goodlogging.Log.Info("CLEAR", "Loading {0} from database:".format(strDescriptor))
+    goodlogging.Log.IncreaseIndent()
     configValue = self._db.GetConfigValue(configKey)
 
     if configValue is None:
-      logzilla.Log.Info("CLEAR", "No {0} exists in database".format(strDescriptor))
+      goodlogging.Log.Info("CLEAR", "No {0} exists in database".format(strDescriptor))
       configValue = self._UserUpdateConfigValue(configKey, strDescriptor, isDir)
     else:
-      logzilla.Log.Info("CLEAR", "Got {0} {1} from database".format(strDescriptor, configValue))
+      goodlogging.Log.Info("CLEAR", "Got {0} {1} from database".format(strDescriptor, configValue))
 
 
     if not isDir or os.path.isdir(configValue):
-      logzilla.Log.Info("CLEAR", "Using {0} {1}".format(strDescriptor, configValue))
-      logzilla.Log.DecreaseIndent()
+      goodlogging.Log.Info("CLEAR", "Using {0} {1}".format(strDescriptor, configValue))
+      goodlogging.Log.DecreaseIndent()
       return configValue
     else:
-      logzilla.Log.Info("CLEAR", "Exiting... {0} is not recognised as a directory".format(configValue))
+      goodlogging.Log.Info("CLEAR", "Exiting... {0} is not recognised as a directory".format(configValue))
       sys.exit(0)
 
   ############################################################################
@@ -109,7 +109,7 @@ class ClearManager:
                              "'r' to reset format list, " \
                              "'f' to finish or " \
                              "'x' to exit: "
-      response = logzilla.Log.Input("CLEAR", prompt)
+      response = goodlogging.Log.Input("CLEAR", prompt)
 
       if response.lower() == 'x':
         sys.exit(0)
@@ -137,18 +137,18 @@ class ClearManager:
   # _GetSupportedFormats
   ############################################################################
   def _GetSupportedFormats(self):
-    logzilla.Log.Info("CLEAR", "Loading supported formats from database:")
-    logzilla.Log.IncreaseIndent()
+    goodlogging.Log.Info("CLEAR", "Loading supported formats from database:")
+    goodlogging.Log.IncreaseIndent()
     formatList = self._db.GetSupportedFormats()
 
     if formatList is None:
-      logzilla.Log.Info("CLEAR", "No supported formats exist in database")
+      goodlogging.Log.Info("CLEAR", "No supported formats exist in database")
       formatList = self._UserUpdateSupportedFormats()
     else:
-      logzilla.Log.Info("CLEAR", "Got supported formats from database: {0}".format(formatList))
+      goodlogging.Log.Info("CLEAR", "Got supported formats from database: {0}".format(formatList))
 
-    logzilla.Log.Info("CLEAR", "Using supported formats: {0}".format(formatList))
-    logzilla.Log.DecreaseIndent()
+    goodlogging.Log.Info("CLEAR", "Using supported formats: {0}".format(formatList))
+    goodlogging.Log.DecreaseIndent()
     return formatList
 
   ############################################################################
@@ -163,7 +163,7 @@ class ClearManager:
                            "'r' to reset directory list, " \
                            "'f' to finish or " \
                            "'x' to exit: "
-      response = logzilla.Log.Input("CLEAR", prompt)
+      response = goodlogging.Log.Input("CLEAR", prompt)
 
       if response.lower() == 'x':
         sys.exit(0)
@@ -189,30 +189,30 @@ class ClearManager:
   # GetIgnoredDirs
   ############################################################################
   def _GetIgnoredDirs(self):
-    logzilla.Log.Info("CLEAR", "Loading ignored directories from database:")
-    logzilla.Log.IncreaseIndent()
+    goodlogging.Log.Info("CLEAR", "Loading ignored directories from database:")
+    goodlogging.Log.IncreaseIndent()
     ignoredDirs = self._db.GetIgnoredDirs()
 
     if ignoredDirs is None:
-      logzilla.Log.Info("CLEAR", "No ignored directories exist in database")
+      goodlogging.Log.Info("CLEAR", "No ignored directories exist in database")
       ignoredDirs = self._UserUpdateIgnoredDirs()
     else:
-      logzilla.Log.Info("CLEAR", "Got ignored directories from database: {0}".format(ignoredDirs))
+      goodlogging.Log.Info("CLEAR", "Got ignored directories from database: {0}".format(ignoredDirs))
 
     if self._archiveDir not in ignoredDirs:
       ignoredDirs.append(self._archiveDir)
 
-    logzilla.Log.Info("CLEAR", "Using ignored directories: {0}".format(ignoredDirs))
-    logzilla.Log.DecreaseIndent()
+    goodlogging.Log.Info("CLEAR", "Using ignored directories: {0}".format(ignoredDirs))
+    goodlogging.Log.DecreaseIndent()
     return ignoredDirs
 
   ############################################################################
   # GetDatabaseConfig
   ############################################################################
   def _GetDatabaseConfig(self):
-    logzilla.Log.Seperator()
-    logzilla.Log.Info("CLEAR", "Getting configuration variables...")
-    logzilla.Log.IncreaseIndent()
+    goodlogging.Log.Seperator()
+    goodlogging.Log.Info("CLEAR", "Getting configuration variables...")
+    goodlogging.Log.IncreaseIndent()
 
     # SOURCE DIRECTORY
     if self._sourceDir is None:
@@ -231,14 +231,14 @@ class ClearManager:
     # IGNORED DIRECTORIES
     self._ignoredDirsList = self._GetIgnoredDirs()
 
-    logzilla.Log.NewLine()
-    logzilla.Log.Info("CLEAR", "Configuation is:")
-    logzilla.Log.IncreaseIndent()
-    logzilla.Log.Info("CLEAR", "Source directory = {0}".format(self._sourceDir))
-    logzilla.Log.Info("CLEAR", "TV directory = {0}".format(self._tvDir))
-    logzilla.Log.Info("CLEAR", "Supported formats = {0}".format(self._supportedFormatsList))
-    logzilla.Log.Info("CLEAR", "Ignored directory list = {0}".format(self._ignoredDirsList))
-    logzilla.Log.ResetIndent()
+    goodlogging.Log.NewLine()
+    goodlogging.Log.Info("CLEAR", "Configuation is:")
+    goodlogging.Log.IncreaseIndent()
+    goodlogging.Log.Info("CLEAR", "Source directory = {0}".format(self._sourceDir))
+    goodlogging.Log.Info("CLEAR", "TV directory = {0}".format(self._tvDir))
+    goodlogging.Log.Info("CLEAR", "Supported formats = {0}".format(self._supportedFormatsList))
+    goodlogging.Log.Info("CLEAR", "Ignored directory list = {0}".format(self._ignoredDirsList))
+    goodlogging.Log.ResetIndent()
 
   ############################################################################
   # GetArgs
@@ -278,8 +278,8 @@ class ClearManager:
       self._skipUserInputExtract = True
 
     if args.reset:
-      logzilla.Log.Info("CLEAR", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE {0}".format(self._databasePath))
-      response = logzilla.Log.Input("CLEAR", "Are you sure you want to proceed [y/n]? ")
+      goodlogging.Log.Info("CLEAR", "*WARNING* YOU ARE ABOUT TO DELETE DATABASE {0}".format(self._databasePath))
+      response = goodlogging.Log.Input("CLEAR", "Are you sure you want to proceed [y/n]? ")
       if response.lower() == 'y':
         if(os.path.isfile(self._databasePath)):
           os.remove(self._databasePath)
@@ -293,10 +293,10 @@ class ClearManager:
       self._crossSystemCopyEnabled = True
 
     if args.tags:
-      logzilla.Log.tagsEnabled = 1
+      goodlogging.Log.tagsEnabled = 1
 
     if args.debug:
-      logzilla.Log.verbosityThreshold = logzilla.Verbosity.MINIMAL
+      goodlogging.Log.verbosityThreshold = goodlogging.Verbosity.MINIMAL
 
     if args.update_db:
       self._dbUpdate = True
@@ -311,20 +311,20 @@ class ClearManager:
       if os.path.isdir(args.src):
         self._sourceDir = args.src
       else:
-        logzilla.Log.Fatal("CLEAR", 'Source directory argument is not recognised as a directory: {}'.format(args.src))
+        goodlogging.Log.Fatal("CLEAR", 'Source directory argument is not recognised as a directory: {}'.format(args.src))
 
     if args.dst:
       if os.path.isdir(args.dst):
         self._tvDir = args.dst
       else:
-        logzilla.Log.Fatal("CLEAR", 'Target directory argument is not recognised as a directory: {}'.format(args.dst))
+        goodlogging.Log.Fatal("CLEAR", 'Target directory argument is not recognised as a directory: {}'.format(args.dst))
 
   ############################################################################
   # GetSupportedFilesInDir
   # Get all supported files from given directory folder
   ############################################################################
   def _GetSupportedFilesInDir(self, fileDir, fileList, supportedFormatList, ignoreDirList):
-    logzilla.Log.Info("CLEAR", "Parsing file directory: {0}".format(fileDir))
+    goodlogging.Log.Info("CLEAR", "Parsing file directory: {0}".format(fileDir))
     if os.path.isdir(fileDir) is True:
       for globPath in glob.glob(os.path.join(fileDir, '*')):
         if util.FileExtensionMatch(globPath, supportedFormatList):
@@ -333,13 +333,13 @@ class ClearManager:
             fileList.append(newFile)
         elif os.path.isdir(globPath):
           if(os.path.basename(globPath) in ignoreDirList):
-            logzilla.Log.Info("CLEAR", "Skipping ignored directory: {0}".format(globPath))
+            goodlogging.Log.Info("CLEAR", "Skipping ignored directory: {0}".format(globPath))
           else:
             self._GetSupportedFilesInDir(globPath, fileList, supportedFormatList, ignoreDirList)
         else:
-          logzilla.Log.Info("CLEAR", "Ignoring unsupported file or folder: {0}".format(globPath))
+          goodlogging.Log.Info("CLEAR", "Ignoring unsupported file or folder: {0}".format(globPath))
     else:
-      logzilla.Log.Info("CLEAR", "Invalid non-directory path given to parse")
+      goodlogging.Log.Info("CLEAR", "Invalid non-directory path given to parse")
 
   ############################################################################
   # Run
@@ -349,38 +349,38 @@ class ClearManager:
   def Run(self):
     self._GetArgs()
 
-    logzilla.Log.Info("CLEAR", "Using database: {0}".format(self._databasePath))
+    goodlogging.Log.Info("CLEAR", "Using database: {0}".format(self._databasePath))
     self._db = database.RenamerDB(self._databasePath)
 
     if self._dbPrint or self._dbUpdate:
-      logzilla.Log.Seperator()
+      goodlogging.Log.Seperator()
       self._db.PrintAllTables()
 
       if self._dbUpdate:
-        logzilla.Log.Seperator()
+        goodlogging.Log.Seperator()
         self._db.ManualUpdateTables()
 
     self._GetDatabaseConfig()
 
     if self._enableExtract:
-      logzilla.Log.Seperator()
+      goodlogging.Log.Seperator()
 
       extractFileList = []
-      logzilla.Log.Info("CLEAR", "Parsing source directory for compressed files")
-      logzilla.Log.IncreaseIndent()
+      goodlogging.Log.Info("CLEAR", "Parsing source directory for compressed files")
+      goodlogging.Log.IncreaseIndent()
       extract.GetCompressedFilesInDir(self._sourceDir, extractFileList, self._ignoredDirsList)
-      logzilla.Log.DecreaseIndent()
+      goodlogging.Log.DecreaseIndent()
 
-      logzilla.Log.Seperator()
+      goodlogging.Log.Seperator()
       extract.Extract(extractFileList, self._supportedFormatsList, self._archiveDir, self._skipUserInputExtract)
 
-    logzilla.Log.Seperator()
+    goodlogging.Log.Seperator()
 
     tvFileList = []
-    logzilla.Log.Info("CLEAR", "Parsing source directory for compatible files")
-    logzilla.Log.IncreaseIndent()
+    goodlogging.Log.Info("CLEAR", "Parsing source directory for compatible files")
+    goodlogging.Log.IncreaseIndent()
     self._GetSupportedFilesInDir(self._sourceDir, tvFileList, self._supportedFormatsList, self._ignoredDirsList)
-    logzilla.Log.DecreaseIndent()
+    goodlogging.Log.DecreaseIndent()
 
     tvRenamer = renamer.TVRenamer(self._db,
                                   tvFileList,

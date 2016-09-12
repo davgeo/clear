@@ -11,7 +11,7 @@ import os
 import re
 
 # Third-party package imports
-import logzilla
+import goodlogging
 
 # Local file imports
 import clear.util as util
@@ -20,7 +20,7 @@ import clear.util as util
 # RenamerDB
 #################################################
 class RenamerDB:
-  logVerbosity = logzilla.Verbosity.MINIMAL
+  logVerbosity = goodlogging.Verbosity.MINIMAL
 
   #################################################
   # constructor
@@ -38,13 +38,13 @@ class RenamerDB:
     if not os.path.exists(self._dbPath):
       self._CreateDatabase()
     elif not os.path.isfile(self._dbPath):
-      logzilla.Log.Fatal("DB", "Database path exists but it is not a file: {0}".format(self._dbPath))
+      goodlogging.Log.Fatal("DB", "Database path exists but it is not a file: {0}".format(self._dbPath))
 
   #################################################
   # _CreateDatabase
   #################################################
   def _CreateDatabase(self):
-    logzilla.Log.Info("DB", "Initialising new database", verbosity=self.logVerbosity)
+    goodlogging.Log.Info("DB", "Initialising new database", verbosity=self.logVerbosity)
 
     with sqlite3.connect(self._dbPath) as db:
       # Configuration tables
@@ -78,13 +78,13 @@ class RenamerDB:
 
       db.commit()
 
-    logzilla.Log.Info("DB", "Database initialisation complete", verbosity=self.logVerbosity)
+    goodlogging.Log.Info("DB", "Database initialisation complete", verbosity=self.logVerbosity)
 
   #################################################
   # _QueryDatabase
   #################################################
   def _QueryDatabase(self, query, tuples = None, commit = True, error = True):
-    logzilla.Log.Info("DB", "Database Query: {0} {1}".format(query, tuples), verbosity=self.logVerbosity)
+    goodlogging.Log.Info("DB", "Database Query: {0} {1}".format(query, tuples), verbosity=self.logVerbosity)
     with sqlite3.connect(self._dbPath) as db:
       try:
         if tuples is None:
@@ -105,7 +105,7 @@ class RenamerDB:
   # Deletes all rows without dropping table
   #################################################
   def _PurgeTable(self, tableName):
-    logzilla.Log.Info("DB", "Deleting all entries from table {0}".format(tableName), verbosity=self.logVerbosity)
+    goodlogging.Log.Info("DB", "Deleting all entries from table {0}".format(tableName), verbosity=self.logVerbosity)
     self._QueryDatabase("DELETE FROM {0}".format(tableName))
 
   #################################################
@@ -119,10 +119,10 @@ class RenamerDB:
     elif len(result) == 0:
       return None
     elif len(result) == 1:
-      logzilla.Log.Info("DB", "Found database match in config table {0}={1}".format(fieldName, result[0][0]), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Found database match in config table {0}={1}".format(fieldName, result[0][0]), verbosity=self.logVerbosity)
       return result[0][0]
     elif len(result) > 1:
-      logzilla.Log.Fatal("DB", "Database corrupted - multiple matches found in config table {0}={1}".format(fieldName, result))
+      goodlogging.Log.Fatal("DB", "Database corrupted - multiple matches found in config table {0}={1}".format(fieldName, result))
 
   #################################################
   # SetConfigValue
@@ -131,10 +131,10 @@ class RenamerDB:
     currentConfigValue = self.GetConfigValue(fieldName)
 
     if currentConfigValue is None:
-      logzilla.Log.Info("DB", "Adding {0}={1} to database config table".format(fieldName, value), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Adding {0}={1} to database config table".format(fieldName, value), verbosity=self.logVerbosity)
       self._QueryDatabase("INSERT INTO Config VALUES (?,?)", (fieldName, value))
     else:
-      logzilla.Log.Info("DB", "Updating {0} in database config table from {1} to {2}".format(fieldName, currentConfigValue, value), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Updating {0} in database config table from {1} to {2}".format(fieldName, currentConfigValue, value), verbosity=self.logVerbosity)
       self._QueryDatabase("UPDATE Config SET Value=? WHERE Name=?", (value, fieldName))
 
   #################################################
@@ -150,10 +150,10 @@ class RenamerDB:
           match = True
 
     if match is None:
-      logzilla.Log.Info("DB", "Adding {0} to {1} table".format(newValue, tableName), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Adding {0} to {1} table".format(newValue, tableName), verbosity=self.logVerbosity)
       self._QueryDatabase("INSERT INTO {0} VALUES (?)".format(tableName), (newValue, ))
     else:
-      logzilla.Log.Info("DB", "{0} already exists in {1} table".format(newValue, tableName), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "{0} already exists in {1} table".format(newValue, tableName), verbosity=self.logVerbosity)
 
   #################################################
   # _GetFromSingleColumnTable
@@ -211,7 +211,7 @@ class RenamerDB:
   # AddShowToTVLibrary
   #################################################
   def AddShowToTVLibrary(self, showName):
-    logzilla.Log.Info("DB", "Adding {0} to TV library".format(showName), verbosity=self.logVerbosity)
+    goodlogging.Log.Info("DB", "Adding {0} to TV library".format(showName), verbosity=self.logVerbosity)
 
     currentShowValues = self.SearchTVLibrary(showName = showName)
 
@@ -220,13 +220,13 @@ class RenamerDB:
       showID = self._QueryDatabase("SELECT (ShowID) FROM TVLibrary WHERE ShowName=?", (showName, ))[0][0]
       return showID
     else:
-      logzilla.Log.Fatal("DB", "An entry for {0} already exists in the TV library".format(showName))
+      goodlogging.Log.Fatal("DB", "An entry for {0} already exists in the TV library".format(showName))
 
   #################################################
   # UpdateShowDirInTVLibrary
   #################################################
   def UpdateShowDirInTVLibrary(self, showID, showDir):
-    logzilla.Log.Info("DB", "Updating TV library for ShowID={0}: ShowDir={1}".format(showID, showDir))
+    goodlogging.Log.Info("DB", "Updating TV library for ShowID={0}: ShowDir={1}".format(showID, showDir))
     self._QueryDatabase("UPDATE TVLibrary SET ShowDir=? WHERE ShowID=?", (showDir, showID))
 
   #################################################
@@ -235,20 +235,20 @@ class RenamerDB:
   def SearchTVLibrary(self, showName = None, showID = None, showDir = None):
     unique = True
     if showName is None and showID is None and showDir is None:
-      logzilla.Log.Info("DB", "Looking up all items in TV library", verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Looking up all items in TV library", verbosity=self.logVerbosity)
       queryString = "SELECT * FROM TVLibrary"
       queryTuple = None
       unique = False
     elif showDir is not None:
-      logzilla.Log.Info("DB", "Looking up from TV library where ShowDir is {0}".format(showDir), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Looking up from TV library where ShowDir is {0}".format(showDir), verbosity=self.logVerbosity)
       queryString = "SELECT * FROM TVLibrary WHERE ShowDir=?"
       queryTuple = (showDir, )
     elif showID is not None:
-      logzilla.Log.Info("DB", "Looking up from TV library where ShowID is {0}".format(showID), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Looking up from TV library where ShowID is {0}".format(showID), verbosity=self.logVerbosity)
       queryString = "SELECT * FROM TVLibrary WHERE ShowID=?"
       queryTuple = (showID, )
     elif showName is not None:
-      logzilla.Log.Info("DB", "Looking up from TV library where ShowName is {0}".format(showName), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Looking up from TV library where ShowName is {0}".format(showName), verbosity=self.logVerbosity)
       queryString = "SELECT * FROM TVLibrary WHERE ShowName=?"
       queryTuple = (showName, )
 
@@ -259,20 +259,20 @@ class RenamerDB:
     elif len(result) == 0:
       return None
     elif len(result) == 1:
-      logzilla.Log.Info("DB", "Found match in TVLibrary: {0}".format(result), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Found match in TVLibrary: {0}".format(result), verbosity=self.logVerbosity)
       return result
     elif len(result) > 1:
       if unique is True:
-        logzilla.Log.Fatal("DB", "Database corrupted - multiple matches found in TV Library: {0}".format(result))
+        goodlogging.Log.Fatal("DB", "Database corrupted - multiple matches found in TV Library: {0}".format(result))
       else:
-        logzilla.Log.Info("DB", "Found multiple matches in TVLibrary: {0}".format(result), verbosity=self.logVerbosity)
+        goodlogging.Log.Info("DB", "Found multiple matches in TVLibrary: {0}".format(result), verbosity=self.logVerbosity)
         return result
 
   #################################################
   # SearchFileNameTable
   #################################################
   def SearchFileNameTable(self, fileName):
-    logzilla.Log.Info("DB", "Looking up filename string '{0}' in database".format(fileName), verbosity=self.logVerbosity)
+    goodlogging.Log.Info("DB", "Looking up filename string '{0}' in database".format(fileName), verbosity=self.logVerbosity)
 
     queryString = "SELECT ShowID FROM FileName WHERE FileName=?"
     queryTuple = (fileName, )
@@ -280,34 +280,34 @@ class RenamerDB:
     result = self._QueryDatabase(queryString, queryTuple, error = False)
 
     if result is None:
-      logzilla.Log.Info("DB", "No match found in database for '{0}'".format(fileName), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "No match found in database for '{0}'".format(fileName), verbosity=self.logVerbosity)
       return None
     elif len(result) == 0:
       return None
     elif len(result) == 1:
-      logzilla.Log.Info("DB", "Found file name match: {0}".format(result), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Found file name match: {0}".format(result), verbosity=self.logVerbosity)
       return result[0][0]
     elif len(result) > 1:
-      logzilla.Log.Fatal("DB", "Database corrupted - multiple matches found in database table for: {0}".format(result))
+      goodlogging.Log.Fatal("DB", "Database corrupted - multiple matches found in database table for: {0}".format(result))
 
   #################################################
   # AddFileNameTable
   #################################################
   def AddToFileNameTable(self, fileName, showID):
-    logzilla.Log.Info("DB", "Adding filename string match '{0}'={1} to database".format(fileName, showID), verbosity=self.logVerbosity)
+    goodlogging.Log.Info("DB", "Adding filename string match '{0}'={1} to database".format(fileName, showID), verbosity=self.logVerbosity)
 
     currentValues = self.SearchFileNameTable(fileName)
 
     if currentValues is None:
       self._QueryDatabase("INSERT INTO FileName (FileName, ShowID) VALUES (?,?)", (fileName, showID))
     else:
-      logzilla.Log.Fatal("DB", "An entry for '{0}' already exists in the FileName table".format(fileName))
+      goodlogging.Log.Fatal("DB", "An entry for '{0}' already exists in the FileName table".format(fileName))
 
   #################################################
   # SearchSeasonDirTable
   #################################################
   def SearchSeasonDirTable(self, showID, seasonNum):
-    logzilla.Log.Info("DB", "Looking up directory for ShowID={0} Season={1} in database".format(showID, seasonNum), verbosity=self.logVerbosity)
+    goodlogging.Log.Info("DB", "Looking up directory for ShowID={0} Season={1} in database".format(showID, seasonNum), verbosity=self.logVerbosity)
 
     queryString = "SELECT SeasonDir FROM SeasonDir WHERE ShowID=? AND Season=?"
     queryTuple = (showID, seasonNum)
@@ -315,21 +315,21 @@ class RenamerDB:
     result = self._QueryDatabase(queryString, queryTuple, error = False)
 
     if result is None:
-      logzilla.Log.Info("DB", "No match found in database", verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "No match found in database", verbosity=self.logVerbosity)
       return None
     elif len(result) == 0:
       return None
     elif len(result) == 1:
-      logzilla.Log.Info("DB", "Found database match: {0}".format(result), verbosity=self.logVerbosity)
+      goodlogging.Log.Info("DB", "Found database match: {0}".format(result), verbosity=self.logVerbosity)
       return result[0][0]
     elif len(result) > 1:
-      logzilla.Log.Fatal("DB", "Database corrupted - multiple matches found in database table for: {0}".format(result))
+      goodlogging.Log.Fatal("DB", "Database corrupted - multiple matches found in database table for: {0}".format(result))
 
   #################################################
   # AddSeasonDirTable
   #################################################
   def AddSeasonDirTable(self, showID, seasonNum, seasonDir):
-    logzilla.Log.Info("DB", "Adding season directory ({0}) to database for ShowID={1}, Season={2}".format(seasonDir, showID, seasonNum), verbosity=self.logVerbosity)
+    goodlogging.Log.Info("DB", "Adding season directory ({0}) to database for ShowID={1}, Season={2}".format(seasonDir, showID, seasonNum), verbosity=self.logVerbosity)
 
     currentValue = self.SearchSeasonDirTable(showID, seasonNum)
 
@@ -337,9 +337,9 @@ class RenamerDB:
       self._QueryDatabase("INSERT INTO SeasonDir (ShowID, Season, SeasonDir) VALUES (?,?,?)", (showID, seasonNum, seasonDir))
     else:
       if currentValue == seasonDir:
-        logzilla.Log.Info("DB", "A matching entry already exists in the SeasonDir table", verbosity=self.logVerbosity)
+        goodlogging.Log.Info("DB", "A matching entry already exists in the SeasonDir table", verbosity=self.logVerbosity)
       else:
-        logzilla.Log.Fatal("DB", "A different entry already exists in the SeasonDir table")
+        goodlogging.Log.Fatal("DB", "A different entry already exists in the SeasonDir table")
 
   #################################################
   # _PrintDatabaseTable
@@ -350,8 +350,8 @@ class RenamerDB:
   # print a subset of the table
   #################################################
   def _PrintDatabaseTable(self, tableName, rowSelect = None):
-    logzilla.Log.Info("DB", "{0}".format(tableName))
-    logzilla.Log.IncreaseIndent()
+    goodlogging.Log.Info("DB", "{0}".format(tableName))
+    goodlogging.Log.IncreaseIndent()
     tableInfo = self._QueryDatabase("PRAGMA table_info({0})".format(tableName))
 
 
@@ -381,15 +381,15 @@ class RenamerDB:
     for count, column in enumerate(columnWidths):
       printStr = printStr + " {{0[{0}]:{1}}} |".format(count, columnWidths[count])
 
-    logzilla.Log.Info("DB", printStr.format(columnHeadings))
-    logzilla.Log.Info("DB", "-"*(sum(columnWidths)+3*len(columnWidths)+1))
+    goodlogging.Log.Info("DB", printStr.format(columnHeadings))
+    goodlogging.Log.Info("DB", "-"*(sum(columnWidths)+3*len(columnWidths)+1))
 
     for row in tableData:
       noneReplacedRow = ['-' if i is None else i for i in row]
-      logzilla.Log.Info("DB", printStr.format(noneReplacedRow))
+      goodlogging.Log.Info("DB", printStr.format(noneReplacedRow))
 
-    logzilla.Log.DecreaseIndent()
-    logzilla.Log.NewLine()
+    goodlogging.Log.DecreaseIndent()
+    goodlogging.Log.NewLine()
 
     return len(tableData)
 
@@ -397,7 +397,7 @@ class RenamerDB:
   # PrintAllTables
   #################################################
   def PrintAllTables(self):
-    logzilla.Log.Info("DB", "Database contents:\n")
+    goodlogging.Log.Info("DB", "Database contents:\n")
     for table in self._tableDict.keys():
       self._PrintDatabaseTable(table)
 
@@ -409,12 +409,12 @@ class RenamerDB:
     try:
       tableName, tableColumns = response.split(' ', 1)
     except ValueError:
-      logzilla.Log.Info("DB", "Database update failed - failed to extract table name from response")
+      goodlogging.Log.Info("DB", "Database update failed - failed to extract table name from response")
       return None
 
     # Check user input against known table list
     if tableName not in self._tableDict.keys():
-      logzilla.Log.Info("DB", "Database update failed - unkown table name: {0}".format(tableName))
+      goodlogging.Log.Info("DB", "Database update failed - unkown table name: {0}".format(tableName))
       return None
 
     # Build re pattern to extract column from user input (form TABLENAME COL1=VAL1 COL2=VAL2 etc)
@@ -431,11 +431,11 @@ class RenamerDB:
       if len(match) == 1:
         rowSelect.append((column, match[0]))
       elif len(match) > 1:
-        logzilla.Log.Info('DB', 'Database update failed - multiple matches found for table {0} column {1}'.format(tableName, column))
+        goodlogging.Log.Info('DB', 'Database update failed - multiple matches found for table {0} column {1}'.format(tableName, column))
         return None
 
     if len(rowSelect) == 0:
-      logzilla.Log.Info('DB', 'Database update failed - no row selection critera found in response')
+      goodlogging.Log.Info('DB', 'Database update failed - no row selection critera found in response')
       return None
 
     # Print selected rows
@@ -444,14 +444,14 @@ class RenamerDB:
     # Do DELETE flow
     if mode.upper() == 'DEL':
       if rowCount == 0:
-        logzilla.Log.Info("DB", "Database update failed - no rows found for given search critera: {0}".format(response))
+        goodlogging.Log.Info("DB", "Database update failed - no rows found for given search critera: {0}".format(response))
         return None
 
-      deleteConfirmation = logzilla.Log.Input("DB", "***WARNING*** DELETE THESE ROWS FROM {0} TABLE? [y/n]: ".format(tableName))
+      deleteConfirmation = goodlogging.Log.Input("DB", "***WARNING*** DELETE THESE ROWS FROM {0} TABLE? [y/n]: ".format(tableName))
       deleteConfirmation = util.ValidUserResponse(deleteConfirmation, ('y', 'n'))
 
       if deleteConfirmation.lower() == 'n':
-        logzilla.Log.Info("DB", "Database table row delete cancelled")
+        goodlogging.Log.Info("DB", "Database table row delete cancelled")
         return None
 
       # Build delete database query (form DELETE FROM TableName WHERE COL1=?, COL2=?)
@@ -462,12 +462,12 @@ class RenamerDB:
 
       self._QueryDatabase(dbQuery, dbQueryParams)
 
-      logzilla.Log.Info("DB", "Deleted {0} row(s) from database table {0}:".format(rowCount, tableName))
+      goodlogging.Log.Info("DB", "Deleted {0} row(s) from database table {0}:".format(rowCount, tableName))
 
     # Do ADD flow
     elif mode.upper() == 'ADD':
       if rowCount != 0:
-        logzilla.Log.Info("DB", "Database update failed - a row already exists for the given critera: {0}".format(response))
+        goodlogging.Log.Info("DB", "Database update failed - a row already exists for the given critera: {0}".format(response))
         return None
 
       # Build insert database query (form INSERT INTO TableName (COL1, COL2) VALUES (?,?))
@@ -480,7 +480,7 @@ class RenamerDB:
 
       self._QueryDatabase(dbQuery, dbQueryParams)
 
-      logzilla.Log.Info("DB", "Added row to database table {0}:".format(tableName))
+      goodlogging.Log.Info("DB", "Added row to database table {0}:".format(tableName))
 
     # Print resulting database table
     self._PrintDatabaseTable(tableName)
@@ -489,7 +489,7 @@ class RenamerDB:
   # ManualUpdateTables
   #################################################
   def ManualUpdateTables(self):
-    logzilla.Log.Info("DB", "Starting manual database update:\n")
+    goodlogging.Log.Info("DB", "Starting manual database update:\n")
     updateFinished = False
 
     # Loop until the user continues program flow or exits
@@ -500,14 +500,14 @@ class RenamerDB:
                      "'p' to select a entire table to purge, " \
                      "'f' to finish or " \
                      "'x' to exit: "
-      response = logzilla.Log.Input("DM", prompt)
+      response = goodlogging.Log.Input("DM", prompt)
 
-      logzilla.Log.NewLine()
-      logzilla.Log.IncreaseIndent()
+      goodlogging.Log.NewLine()
+      goodlogging.Log.IncreaseIndent()
 
       # Exit program
       if response.lower() == 'x':
-        logzilla.Log.Fatal("DB", "Program exited by user response")
+        goodlogging.Log.Fatal("DB", "Program exited by user response")
 
       # Finish updating database
       elif response.lower() == 'f':
@@ -519,27 +519,27 @@ class RenamerDB:
 
       # Purge a given table
       elif response.lower() == 'p':
-        response = logzilla.Log.Input("DM", "Enter database table to purge or 'c' to cancel: ")
+        response = goodlogging.Log.Input("DM", "Enter database table to purge or 'c' to cancel: ")
 
         # Go back to main update selection
         if response.lower() == 'c':
-          logzilla.Log.Info("DB", "Database table purge cancelled")
+          goodlogging.Log.Info("DB", "Database table purge cancelled")
 
         # Purge table
         else:
           if response in self._tableDict.keys():
             self._PrintDatabaseTable(response)
 
-            deleteConfirmation = logzilla.Log.Input("DB", "***WARNING*** DELETE ALL ROWS FROM {0} TABLE? [y/n]: ".format(response))
+            deleteConfirmation = goodlogging.Log.Input("DB", "***WARNING*** DELETE ALL ROWS FROM {0} TABLE? [y/n]: ".format(response))
             deleteConfirmation = util.ValidUserResponse(deleteConfirmation, ('y', 'n'))
 
             if deleteConfirmation.lower() == 'n':
-              logzilla.Log.Info("DB", "Database table purge cancelled")
+              goodlogging.Log.Info("DB", "Database table purge cancelled")
             else:
               self._PurgeTable(response)
-              logzilla.Log.Info("DB", "{0} database table purged".format(response))
+              goodlogging.Log.Info("DB", "{0} database table purged".format(response))
           else:
-            logzilla.Log.Info("DB", "Unknown table name ({0}) given to purge".format(response))
+            goodlogging.Log.Info("DB", "Unknown table name ({0}) given to purge".format(response))
 
       # Add new row to table
       elif response.lower() == 'a':
@@ -547,11 +547,11 @@ class RenamerDB:
         while not addFinished:
           prompt = "Enter new database row (in format TABLE COL1=VAL COL2=VAL etc) " \
                     "or 'c' to cancel: "
-          response = logzilla.Log.Input("DM", prompt)
+          response = goodlogging.Log.Input("DM", prompt)
 
           # Go back to main update selection
           if response.lower() == 'c':
-            logzilla.Log.Info("DB", "Database table add cancelled")
+            goodlogging.Log.Info("DB", "Database table add cancelled")
             addFinished = True
 
           # Add row to table
@@ -564,11 +564,11 @@ class RenamerDB:
         while not deleteFinished:
           prompt = "Enter database row to delete (in format TABLE COL1=VAL COL2=VAL etc) " \
                     "or 'c' to cancel: "
-          response = logzilla.Log.Input("DM", prompt)
+          response = goodlogging.Log.Input("DM", prompt)
 
           # Go back to main update selection
           if response.lower() == 'c':
-            logzilla.Log.Info("DB", "Database table row delete cancelled")
+            goodlogging.Log.Info("DB", "Database table row delete cancelled")
             deleteFinished = True
 
           # Delete row(s) from table
@@ -577,10 +577,10 @@ class RenamerDB:
 
       # Unknown user input given
       else:
-        logzilla.Log.Info("DB", "Unknown response")
+        goodlogging.Log.Info("DB", "Unknown response")
 
-      logzilla.Log.DecreaseIndent()
-      logzilla.Log.NewLine()
+      goodlogging.Log.DecreaseIndent()
+      goodlogging.Log.NewLine()
 
-    logzilla.Log.Info("DB", "Manual database update complete.")
+    goodlogging.Log.Info("DB", "Manual database update complete.")
     self.PrintAllTables()

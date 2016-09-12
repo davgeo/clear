@@ -13,7 +13,7 @@ import re
 
 # Third-party package imports
 import rarfile
-import logzilla
+import goodlogging
 
 # Local file imports
 import clear.util as util
@@ -26,7 +26,7 @@ rarfile.PATH_SEP = os.sep
 # Get all supported files from given directory folder
 ############################################################################
 def GetCompressedFilesInDir(fileDir, fileList, ignoreDirList, supportedFormatList = ['.rar',]):
-  logzilla.Log.Info("EXTRACT", "Parsing file directory: {0}".format(fileDir))
+  goodlogging.Log.Info("EXTRACT", "Parsing file directory: {0}".format(fileDir))
   if os.path.isdir(fileDir) is True:
     for globPath in glob.glob(os.path.join(fileDir, '*')):
       if os.path.splitext(globPath)[1] in supportedFormatList:
@@ -59,7 +59,7 @@ def DoRarExtraction(rarArchive, targetFile, dstDir):
   try:
     rarArchive.extract(targetFile, dstDir)
   except BaseException as ex:
-    logzilla.Log.Info("EXTRACT", "Extract failed - Exception: {0}".format(ex))
+    goodlogging.Log.Info("EXTRACT", "Extract failed - Exception: {0}".format(ex))
     return False
   else:
     return True
@@ -69,19 +69,19 @@ def DoRarExtraction(rarArchive, targetFile, dstDir):
 # Add extraction password to rar archive
 ############################################################################
 def GetRarPassword(rarArchive, skipUserInput):
-  logzilla.Log.Info("EXTRACT", "RAR file needs password to extract")
+  goodlogging.Log.Info("EXTRACT", "RAR file needs password to extract")
   if skipUserInput is False:
     prompt = "Enter password, 'x' to skip this file or 'exit' to quit this program: "
-    response = logzilla.Log.Input("EXTRACT", prompt)
+    response = goodlogging.Log.Input("EXTRACT", prompt)
     response = util.CheckEmptyResponse(response)
   else:
     response = 'x'
 
   if response.lower() == 'x':
-    logzilla.Log.Info("EXTRACT", "File extraction skipped without password")
+    goodlogging.Log.Info("EXTRACT", "File extraction skipped without password")
     return False
   elif response.lower() == 'exit':
-    logzilla.Log.Fatal("EXTRACT", "Program terminated by user 'exit'")
+    goodlogging.Log.Fatal("EXTRACT", "Program terminated by user 'exit'")
   else:
     return response
 
@@ -90,13 +90,13 @@ def GetRarPassword(rarArchive, skipUserInput):
 # Check with user for password reuse
 ############################################################################
 def CheckPasswordReuse(skipUserInput):
-  logzilla.Log.Info("EXTRACT", "RAR files needs password to extract")
+  goodlogging.Log.Info("EXTRACT", "RAR files needs password to extract")
   if skipUserInput is False:
     prompt = "Enter 't' to reuse the last password for just this file, " \
              "'a' to reuse for all subsequent files, " \
              "'n' to enter a new password for this file " \
              "or 's' to enter a new password for all files: "
-    response = logzilla.Log.Input("EXTRACT", prompt)
+    response = goodlogging.Log.Input("EXTRACT", prompt)
     response = util.ValidUserResponse(response, ('t','a','n','s'))
   else:
     response = 'a'
@@ -117,11 +117,11 @@ def CheckPasswordReuse(skipUserInput):
 # directory.
 ############################################################################
 def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
-  logzilla.Log.Info("EXTRACT", "Extracting files from compressed archives")
-  logzilla.Log.IncreaseIndent()
+  goodlogging.Log.Info("EXTRACT", "Extracting files from compressed archives")
+  goodlogging.Log.IncreaseIndent()
   if len(fileList) == 0:
-    logzilla.Log.Info("EXTRACT", "No files to extract")
-    logzilla.Log.DecreaseIndent()
+    goodlogging.Log.Info("EXTRACT", "No files to extract")
+    goodlogging.Log.DecreaseIndent()
     return
 
   firstPartExtractList = []
@@ -131,17 +131,17 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
   reuseLastPassword = 0
 
   for filePath in fileList:
-    logzilla.Log.Info("EXTRACT", "{0}".format(filePath))
-    logzilla.Log.IncreaseIndent()
+    goodlogging.Log.Info("EXTRACT", "{0}".format(filePath))
+    goodlogging.Log.IncreaseIndent()
     try:
       rarArchive = rarfile.RarFile(filePath)
     except ImportError:
-      logzilla.Log.Info("EXTRACT", "Unable to extract - Python needs the rarfile package to be installed (see README for more details)")
+      goodlogging.Log.Info("EXTRACT", "Unable to extract - Python needs the rarfile package to be installed (see README for more details)")
     except rarfile.NeedFirstVolume:
-      logzilla.Log.Info("EXTRACT", "File skipped - this is not the first part of the RAR archive")
+      goodlogging.Log.Info("EXTRACT", "File skipped - this is not the first part of the RAR archive")
       MultipartArchiving(firstPartExtractList, otherPartSkippedList, archiveDir, filePath)
     except BaseException as ex:
-      logzilla.Log.Info("EXTRACT", "Unable to extract - Exception: {0}".format(ex))
+      goodlogging.Log.Info("EXTRACT", "Unable to extract - Exception: {0}".format(ex))
     else:
       dirPath = os.path.dirname(filePath)
       fileExtracted = False
@@ -165,16 +165,16 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
       if rarAuthentication:
         for f in rarArchive.infolist():
           if util.FileExtensionMatch(f.filename, fileFormatList):
-            logzilla.Log.Info("EXTRACT", "Extracting file: {0}".format(f.filename))
+            goodlogging.Log.Info("EXTRACT", "Extracting file: {0}".format(f.filename))
 
             extractPath = os.path.join(dirPath, f.filename)
             targetPath = os.path.join(dirPath, os.path.basename(f.filename))
 
             if os.path.isfile(targetPath):
-              logzilla.Log.Info("EXTRACT", "Extraction skipped - file already exists at target: {0}".format(targetPath))
+              goodlogging.Log.Info("EXTRACT", "Extraction skipped - file already exists at target: {0}".format(targetPath))
               fileExtracted = True
             elif os.path.isfile(extractPath):
-              logzilla.Log.Info("EXTRACT", "Extraction skipped - file already exists at extract directory: {0}".format(extractPath))
+              goodlogging.Log.Info("EXTRACT", "Extraction skipped - file already exists at extract directory: {0}".format(extractPath))
               fileExtracted = True
             else:
               fileExtracted = DoRarExtraction(rarArchive, f, dirPath)
@@ -195,5 +195,5 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
           MultipartArchiving(firstPartExtractList, otherPartSkippedList, archiveDir)
 
     finally:
-      logzilla.Log.DecreaseIndent()
-  logzilla.Log.DecreaseIndent()
+      goodlogging.Log.DecreaseIndent()
+  goodlogging.Log.DecreaseIndent()

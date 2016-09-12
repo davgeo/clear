@@ -11,7 +11,7 @@ import re
 import types
 
 # Third-party package imports
-import logzilla
+import goodlogging
 
 # Local file imports
 import clear.util as util
@@ -89,7 +89,7 @@ class TVFile:
     episodeNumSubstring = set(re.findall("(?<=[0-9])[xXeE][0-9]+(?:[xXeE_.-][0-9]+)*", fileName))
 
     if len(episodeNumSubstring) != 1:
-      logzilla.Log.Info("TVFILE", "Incompatible filename no episode match detected: {0}".format(self.fileInfo.origPath))
+      goodlogging.Log.Info("TVFILE", "Incompatible filename no episode match detected: {0}".format(self.fileInfo.origPath))
       return False
 
     episodeNumSet = set(re.findall("(?<=[xXeE_.-])[0-9]+", episodeNumSubstring.pop()))
@@ -97,7 +97,7 @@ class TVFile:
     episodeNumList.sort()
 
     if len(episodeNumList) < 1:
-      logzilla.Log.Info("TVFILE", "Incompatible filename no episode match detected: {0}".format(self.fileInfo.origPath))
+      goodlogging.Log.Info("TVFILE", "Incompatible filename no episode match detected: {0}".format(self.fileInfo.origPath))
       return False
     else:
       episodeNum = "{0}".format(episodeNumList[0])
@@ -130,7 +130,7 @@ class TVFile:
       if len(seasonNumSet) == 1:
         seasonNum = seasonNumSet.pop()
       else:
-        logzilla.Log.Info("TVFILE", "Incompatible filename no season match detected: {0}".format(self.fileInfo.origPath))
+        goodlogging.Log.Info("TVFILE", "Incompatible filename no season match detected: {0}".format(self.fileInfo.origPath))
         return False
 
     if len(seasonNum) == 1:
@@ -144,7 +144,7 @@ class TVFile:
     if len(showNameList) == 1:
       showName = util.StripSpecialCharacters(showNameList[0].lower(), stripAll=True)
     else:
-      logzilla.Log.Info("TVFILE", "Incompatible filename no show name detected: {0}".format(self.fileInfo.origPath))
+      goodlogging.Log.Info("TVFILE", "Incompatible filename no show name detected: {0}".format(self.fileInfo.origPath))
       return False
 
     self.fileInfo.showName = showName
@@ -185,17 +185,17 @@ class TVFile:
   # Print
   ############################################################################
   def Print(self):
-    logzilla.Log.Info("TVFILE", "TV File details are:")
-    logzilla.Log.IncreaseIndent()
-    logzilla.Log.Info("TVFILE", "Original File Path      = {0}".format(self.fileInfo.origPath))
+    goodlogging.Log.Info("TVFILE", "TV File details are:")
+    goodlogging.Log.IncreaseIndent()
+    goodlogging.Log.Info("TVFILE", "Original File Path      = {0}".format(self.fileInfo.origPath))
     if self.showInfo.showName is not None:
-      logzilla.Log.Info("TVFILE", "Show Name (from guide)  = {0}".format(self.showInfo.showName))
+      goodlogging.Log.Info("TVFILE", "Show Name (from guide)  = {0}".format(self.showInfo.showName))
     elif self.fileInfo.showName is not None:
-      logzilla.Log.Info("TVFILE", "Show Name (from file)   = {0}".format(self.fileInfo.showName))
+      goodlogging.Log.Info("TVFILE", "Show Name (from file)   = {0}".format(self.fileInfo.showName))
     if self.showInfo.seasonNum is not None and self.showInfo.episodeNum is not None:
-      logzilla.Log.Info("TVFILE", "Season & Episode        = S{0}E{1}".format(self.showInfo.seasonNum, self.showInfo.episodeNum))
+      goodlogging.Log.Info("TVFILE", "Season & Episode        = S{0}E{1}".format(self.showInfo.seasonNum, self.showInfo.episodeNum))
     if self.showInfo.episodeName is not None:
-      logzilla.Log.Info("TVFILE", "Episode Name:           = {0}".format(self.showInfo.episodeName))
+      goodlogging.Log.Info("TVFILE", "Episode Name:           = {0}".format(self.showInfo.episodeName))
     if self.fileInfo.newPath is not None:
-      logzilla.Log.Info("TVFILE", "New File Path           = {0}".format(self.fileInfo.newPath))
-    logzilla.Log.DecreaseIndent()
+      goodlogging.Log.Info("TVFILE", "New File Path           = {0}".format(self.fileInfo.newPath))
+    goodlogging.Log.DecreaseIndent()
