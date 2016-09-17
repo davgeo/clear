@@ -39,7 +39,7 @@ def GetCompressedFilesInDir(fileDir, fileList, ignoreDirList, supportedFormatLis
 ############################################################################
 def MultipartArchiving(firstPartExtractList, otherPartSkippedList, archiveDir, otherPartFilePath = None):
   if otherPartFilePath is None:
-    for filePath in otherPartSkippedList:
+    for filePath in list(otherPartSkippedList):
       MultipartArchiving(firstPartExtractList, otherPartSkippedList, archiveDir, filePath)
   else:
     baseFileName = re.findall("(.+?)[.]part.+?rar", otherPartFilePath)[0]
@@ -68,7 +68,7 @@ def DoRarExtraction(rarArchive, targetFile, dstDir):
 # GetRarPassword
 # Add extraction password to rar archive
 ############################################################################
-def GetRarPassword(rarArchive, skipUserInput):
+def GetRarPassword(skipUserInput):
   goodlogging.Log.Info("EXTRACT", "RAR file needs password to extract")
   if skipUserInput is False:
     prompt = "Enter password, 'x' to skip this file or 'exit' to quit this program: "
@@ -129,7 +129,6 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
 
   lastPassword = False
   reuseLastPassword = 0
-
   for filePath in fileList:
     goodlogging.Log.Info("EXTRACT", "{0}".format(filePath))
     goodlogging.Log.IncreaseIndent()
@@ -154,7 +153,7 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
         if lastPassword and reuseLastPassword in (1, 2):
           rarArchive.setpassword(lastPassword)
         else:
-          rarPassword = GetRarPassword(rarArchive, skipUserInput)
+          rarPassword = GetRarPassword(skipUserInput)
 
           if rarPassword:
             rarArchive.setpassword(rarPassword)

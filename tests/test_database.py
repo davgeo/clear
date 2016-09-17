@@ -5,6 +5,7 @@ Testbench for clear.database
 '''
 import os
 import sqlite3
+import goodlogging
 import unittest
 import unittest.mock as mock
 
@@ -18,6 +19,9 @@ class ClearDatabase(unittest.TestCase):
   #################################################
   @classmethod
   def setUpClass(cls):
+    # Silence all logging messages
+    goodlogging.Log.silenceAll = True
+
     # Create test database at test_<RAND_STRING>.db
     cls.dbPath = test_lib.GenerateRandomPath(os.path.join(test_lib.GetBaseDir(), 'test'), '.db')
     cls.db = clear.database.RenamerDB(cls.dbPath)
@@ -215,7 +219,7 @@ class ClearDatabase(unittest.TestCase):
   #################################################
   # Check SeasonDir table
   #################################################
-  def test_db_SearchSeasonDirTable(self):
+  def test_db_SeasonDirTable(self):
     # Ensure initial SeasonDir table is empty
     result = self.db._QueryDatabase("SELECT * FROM SeasonDir", error = False)
     self.assertEqual(result, [])
