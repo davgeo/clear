@@ -3,6 +3,7 @@
 Testbench for clear.extract
 
 '''
+import os
 import goodlogging
 import rarfile
 import unittest
@@ -93,11 +94,11 @@ class Extract(unittest.TestCase):
 
       # Check exception raised by RAR file extraction
       result = clear.extract.DoRarExtraction(rarArchive, 'target.file', 'fakedir')
-      self.assertFalse(result)
+      self.assertIs(result, False)
 
       # RAR file extraction function call will do nothing and return True
       result = clear.extract.DoRarExtraction(rarArchive, 'target.file', 'fakedir')
-      self.assertTrue(result)
+      self.assertIs(result, True)
 
   #################################################
   # Test GetRarPassword function
@@ -114,7 +115,7 @@ class Extract(unittest.TestCase):
     # Check 'x'
     mock_input.side_effect = ['x']
     result = clear.extract.GetRarPassword(skipUserInput)
-    self.assertFalse(result)
+    self.assertIs(result, False)
 
     # Check 'rarpassword'
     mock_input.side_effect = ['rarpassword']
@@ -129,7 +130,7 @@ class Extract(unittest.TestCase):
     # Check skipUserInput
     skipUserInput = True
     result = clear.extract.GetRarPassword(skipUserInput)
-    self.assertFalse(result)
+    self.assertIs(result, False)
 
   #################################################
   # Test GetRarPassword function
@@ -180,21 +181,20 @@ class Extract(unittest.TestCase):
     mock_rarextract.return_value = True # Skip actual RAR extraction
     mock_archivefile.return_value = True # Skip archiving extracted rar archive file
     mock_removedirtree.return_value = True # Skip directory removal
-    mock_rename = True # Skip any renaming calls
+    mock_rename.return_value = True # Skip any renaming calls
 
     with mock.patch('rarfile.RarFile', autospec=True) as mock_rarfile:
       # Setup testcase infrastructure
       mock_rarfile_instance = mock_rarfile.return_value
       mock_rarfile_instance.needs_password.return_value = False
 
+      # Do initial test exercises with three archive files each containing two files to extract
       filename_list = ['fileA.ff1', 'fileB.ff2', 'fileC.txt', 'fileD.log']
-      s = []
-
+      archive = []
       for name in filename_list:
         m = mock.MagicMock(filename=name)
-        s.append(m)
-
-      mock_rarfile_instance.infolist.return_value = s
+        archive.append(m)
+      mock_rarfile_instance.infolist.return_value = archive
 
       fileFormatList = ['.ff1', '.ff2']
       archiveDir = 'fakedir'
@@ -204,54 +204,90 @@ class Extract(unittest.TestCase):
 
       mock_isfile.return_value = False
 
-      # Test rar file password options
+      # Test rar file needs password option
       mock_rarfile_instance.needs_password.return_value = True
 
       with mock.patch('clear.extract.GetRarPassword') as mock_rarpassword:
         with mock.patch('clear.extract.CheckPasswordReuse') as mock_pwdreuse:
           mock_rarpassword.side_effect = [False, 'fakepwd1']
-          mock_pwdreuse.return_value = 1
-          result = clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+          mock_pwdreuse.return_value = 1 # Reuse previous password for file3
+          clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+          self.assertEqual(mock_rarfile.call_args_list, [mock.call(i) for i in fileList])
+          self.assertEqual(mock_rarfile_instance.needs_password.call_count, 3)
+          self.assertEqual(mock_rarfile_instance.setpassword.call_args_list, [mock.call('fakepwd1'), mock.call('fakepwd1')])
+          self.assertEqual(mock_rarfile_instance.infolist.call_count, 2)
 
       # Test rar file doesn't need password
-      mock_rarfile_instance.needs_password.return_value = False
-      result = clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      mock_rarextract.reset_mock()
+      mock_rarfile.reset_mock()
 
+      mock_rarfile_instance.needs_password.return_value = False
+      clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      self.assertEqual(mock_rarfile.call_args_list, [mock.call(i) for i in fileList])
+      self.assertEqual(mock_rarfile_instance.needs_password.call_count, 3)
+      self.assertEqual(mock_rarfile_instance.setpassword.call_count, 0)
+      self.assertEqual(mock_rarfile_instance.infolist.call_count, 3)
+
+      expectedRarExtractArgList = []
+      for archivepath in fileList:
+        for file in archive:
+          if os.path.splitext(file.filename)[1] in fileFormatList:
+            expectedRarExtractArgList.append(mock.call(mock_rarfile_instance, file, os.path.dirname(archivepath)))
+
+      self.assertEqual(mock_rarextract.call_count, 6)
+      self.assertEqual(expectedRarExtractArgList, mock_rarextract.call_args_list)
+
+      # Do following test exercises with a single archive file, containing only one file to extract
+      mock_rarextract.reset_mock()
+      mock_rarfile.reset_mock()
 
       filename_list = ['fileA.ff1', 'fileC.txt', 'fileD.log']
-      s = []
-
+      archive = []
       for name in filename_list:
         m = mock.MagicMock(filename=name)
-        s.append(m)
-
-      mock_rarfile_instance.infolist.return_value = s
+        archive.append(m)
+      mock_rarfile_instance.infolist.return_value = archive
 
       fileList = ['filedir1/file1.part1.rar']
 
       # Test rar files extracted to sub-directory
       mock_isfile.side_effect = [False, False, True, False]
-      result = clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      self.assertEqual(mock_rarextract.call_count, 1)
+      self.assertEqual(mock_removedirtree.call_count, 1)
+      self.assertEqual(mock_rename.call_count, 1)
 
       # Test file already extracted at base directory
       mock_isfile.side_effect = [True, False, False]
-      result = clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      self.assertEqual(mock_rarextract.call_count, 1)
+      self.assertEqual(mock_removedirtree.call_count, 1)
+      self.assertEqual(mock_rename.call_count, 1)
 
       # Test file already exists at extracted sub-directory
       mock_isfile.side_effect = [False, True, False, False]
-      result = clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      self.assertEqual(mock_rarextract.call_count, 1)
+      self.assertEqual(mock_removedirtree.call_count, 1)
+      self.assertEqual(mock_rename.call_count, 1)
 
       # Test rar archive ImportError
+      mock_rarfile.reset_mock()
       mock_rarfile.side_effect = [ImportError('Test Import Error')]
-      result = clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      self.assertIs(mock_rarfile_instance.needs_password.called, False)
 
       # Test rar archive rarfile.NeedFirstVolume error
+      mock_multipartarchiving.reset_mock()
       mock_rarfile.side_effect = [rarfile.NeedFirstVolume]
-      result = clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      self.assertEqual(mock_multipartarchiving.call_count, 1)
 
       # Test rar archive other exception
+      mock_rarfile.reset_mock()
       mock_rarfile.side_effect = [Exception('Test Unknown Error')]
-      result = clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      clear.extract.Extract(fileList, fileFormatList, archiveDir, skipUserInput)
+      self.assertIs(mock_rarfile_instance.needs_password.called, False)
 
       # Test empty filelist
       fileList = []

@@ -15,7 +15,7 @@ import test_lib
 
 class ClearDatabase(unittest.TestCase):
   #################################################
-  # Set up test infrastructure:
+  # Set up test infrastructure
   #################################################
   @classmethod
   def setUpClass(cls):
@@ -39,7 +39,7 @@ class ClearDatabase(unittest.TestCase):
   #################################################
   def test_db_MiscDatabaseCheck(self):
     # Check set up database exists
-    self.assertTrue(os.path.exists(self.dbPath))
+    self.assertIs(os.path.exists(self.dbPath), True)
 
     # Point database to a directory instead of a file path, expect fatal error
     path = test_lib.GenerateRandomPath(os.path.join(test_lib.GetBaseDir(), 'invalid_db'))

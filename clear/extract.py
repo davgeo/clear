@@ -122,7 +122,7 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
   if len(fileList) == 0:
     goodlogging.Log.Info("EXTRACT", "No files to extract")
     goodlogging.Log.DecreaseIndent()
-    return
+    return None
 
   firstPartExtractList = []
   otherPartSkippedList = []
