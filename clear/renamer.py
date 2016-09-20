@@ -47,7 +47,7 @@ class TVRenamer:
     if(guideName == epguides.EPGuidesLookup.GUIDE_NAME):
       self._guide = epguides.EPGuidesLookup()
     else:
-      raise Exception("[RENAMER] Unknown guide set for TVRenamer selection")
+      raise Exception("[RENAMER] Unknown guide set for TVRenamer selection: Got {}, Expected {}".format(guideName, epguides.EPGuidesLookup.GUIDE_NAME))
 
   ############################################################################
   # _GetUniqueFileShowNames
@@ -109,7 +109,6 @@ class TVRenamer:
                 goodlogging.Log.Info("RENAMER", "Existing shows in database are: {0}".format(dbShowNameStr))
                 response = goodlogging.Log.Input("RENAMER", "Is this a new show? [y/n]: ")
                 response = util.ValidUserResponse(response, ('y', 'n'))
-
           if response.lower() == 'y':
             showInfo.showID = self._db.AddShowToTVLibrary(showName)
             showInfo.showName = showName
@@ -122,16 +121,16 @@ class TVRenamer:
                 goodlogging.Log.Info("RENAMER", "No show ID found - TV library is empty")
                 return None
               dbShowNameList = [i[1] for i in dbLibList]
-            finally:
-              while showInfo.showID is None:
-                matchShowList = util.GetBestMatch(showName, dbShowNameList)
-                showName = util.UserAcceptance(matchShowList)
-                if showName is None:
-                  goodlogging.Log.Info("RENAMER", "No show ID found - could not match to existing show")
-                  return None
-                elif showName in matchShowList:
-                  showInfo.showID = self._db.SearchTVLibrary(showName = showName)[0][0]
-                  showInfo.showName = showName
+
+            while showInfo.showID is None:
+              matchShowList = util.GetBestMatch(showName, dbShowNameList)
+              showName = util.UserAcceptance(matchShowList)
+              if showName is None:
+                goodlogging.Log.Info("RENAMER", "No show ID found - could not match to existing show")
+                return None
+              elif showName in matchShowList:
+                showInfo.showID = self._db.SearchTVLibrary(showName = showName)[0][0]
+                showInfo.showName = showName
 
         else:
           showInfo.showID = libEntry[0][0]
@@ -227,6 +226,7 @@ class TVRenamer:
               goodlogging.Log.Info("RENAMER", "File copy failed - Shutil Error: {0}".format(err))
             else:
               util.ArchiveProcessedFile(renameFilePath)
+              return True
           else:
             goodlogging.Log.Info("RENAMER", "File copy skipped - copying between file systems is disabled (enabling this functionality is slow)")
       else:
@@ -235,6 +235,7 @@ class TVRenamer:
       goodlogging.Log.Info("RENAMER", "File rename skipped - Exception ({0}): {1}".format(ex.args[0], ex.args[1]))
     else:
       goodlogging.Log.Info("RENAMER", "RENAME COMPLETE: {0}".format(newPath))
+      return True
 
   ############################################################################
   # _CreateNewSeasonDir
@@ -278,17 +279,16 @@ class TVRenamer:
         seasonDirName = self._CreateNewSeasonDir(seasonNum)
       else:
         matchDirList = []
-        if os.path.isdir(showDir):
-          for dirName in os.listdir(showDir):
-            subDir = os.path.join(showDir, dirName)
-            if os.path.isdir(subDir):
-              seasonResult = re.findall("Season", dirName)
-              if len(seasonResult) > 0:
-                numResult = re.findall("[0-9]+", dirName)
-                numResult = set(numResult)
-                if len(numResult) == 1:
-                  if int(numResult.pop()) == int(seasonNum):
-                    matchDirList.append(dirName)
+        for dirName in os.listdir(showDir):
+          subDir = os.path.join(showDir, dirName)
+          if os.path.isdir(subDir):
+            seasonResult = re.findall("Season", dirName)
+            if len(seasonResult) > 0:
+              numResult = re.findall("[0-9]+", dirName)
+              numResult = set(numResult)
+              if len(numResult) == 1:
+                if int(numResult.pop()) == int(seasonNum):
+                  matchDirList.append(dirName)
 
         if self._skipUserInput is True:
           if len(matchDirList) == 1:
