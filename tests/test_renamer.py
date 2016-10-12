@@ -583,11 +583,88 @@ class Clear(unittest.TestCase):
   #################################################
   # Test Run function
   #################################################
-  def test_renamer_Run(self):
-    goodlogging.Log.silenceAll = False
-    goodlogging.Log.silenceAll = True
+  @mock.patch('clear.renamer.TVRenamer._MoveFileToLibrary')
+  @mock.patch('goodlogging.Log.Input')
+  @mock.patch('clear.renamer.TVRenamer._GenerateLibraryPath')
+  @mock.patch('clear.epguides.EPGuidesLookup.EpisodeNameLookUp')
+  @mock.patch('clear.renamer.TVRenamer._GetShowInfo')
+  @mock.patch('clear.renamer.TVRenamer._GetUniqueFileShowNames')
+  def test_renamer_Run(self, mock_getfileshowname, mock_getshowinfo, mock_episodelookup,
+                      mock_genlibpath, mock_input, mock_movefile):
+    renamer = clear.renamer.TVRenamer('fakedir', [], 'fakedir')
 
+    # Test empty file list
+    mock_getfileshowname.return_value = []
+    renamer.Run()
+    mock_getshowinfo.assert_not_called()
 
+    showName = 'show1'
+    showID = '1'
+    seasonNum = '2'
+    episodeNum = '4'
+    episodeName = 'Episode4'
+    showFileName = 'show1filename'
+
+    mock_getfileshowname.return_value = [showFileName]
+
+    # Test no show name
+    fileList = []
+    tvFile = mock.MagicMock(spec=clear.tvfile.TVFile)
+    tvFile.fileInfo = mock.MagicMock(showName=showFileName)
+    tvFile.showInfo = mock.MagicMock(showName=None, ShowID=None, seasonNum=seasonNum, episodeNum=episodeNum)
+    fileList.append(tvFile)
+
+    mock_getshowinfo.return_value = None
+    renamer._fileList = fileList
+    renamer.Run()
+    mock_getshowinfo.assert_called_once_with(showFileName)
+    mock_episodelookup.assert_not_called()
+
+    mock_getshowinfo.return_value = mock.MagicMock(showName=showName, ShowID=showID)
+
+    # Test no episode name
+    mock_episodelookup.return_value = None
+    renamer.Run()
+    mock_episodelookup.assert_called_once_with(showName, seasonNum, episodeNum)
+
+    mock_episodelookup.return_value = episodeName
+
+    # Test with _inPlaceRename=True
+    renamer._inPlaceRename = True
+    mock_input.side_effect = ['z', 'n']
+    renamer.Run()
+    mock_genlibpath.assert_not_called()
+    mock_movefile.assert_not_called()
+
+    mock_input.side_effect = ['y']
+    renamer.Run()
+    mock_movefile.assert_called_once_with(tvFile.fileInfo.origPath, tvFile.fileInfo.newPath)
+
+    renamer._inPlaceRename = False
+    mock_genlibpath.return_value = tvFile
+
+    # Test with _skipUserInput=True
+    mock_movefile.reset_mock()
+    renamer._skipUserInput = True
+    renamer.Run()
+    mock_genlibpath.assert_called_once_with(tvFile, renamer._tvDir)
+    mock_movefile.assert_called_once_with(tvFile.fileInfo.origPath, tvFile.fileInfo.newPath)
+
+    # Test no new path
+    mock_input.reset_mock()
+    mock_movefile.reset_mock()
+    tvFile.fileInfo = mock.MagicMock(showName=showFileName, origPath='oldFilePath', newPath=None)
+    mock_genlibpath.return_value = tvFile
+    renamer.Run()
+    mock_input.assert_not_called()
+    mock_movefile.assert_not_called()
+
+    # Test current and new file paths match
+    tvFile.fileInfo = mock.MagicMock(showName=showFileName, origPath='oldFilePath', newPath='oldFilePath')
+    mock_genlibpath.return_value = tvFile
+    renamer.Run()
+    mock_input.assert_not_called()
+    mock_movefile.assert_not_called()
 
 if __name__ == '__main__':
   unittest.main()
