@@ -36,7 +36,8 @@ def RemoveEmptyDirectoryTree(path, silent = False, recursion = 0):
 
 ############################################################################
 # CheckPathExists
-#
+# Check if path exists, if it does add number to path (incrementing until
+# a unique path is found)
 ############################################################################
 def CheckPathExists(path):
   i = 0
@@ -57,7 +58,7 @@ def StripSpecialCharacters(string, stripAll = False):
   goodlogging.Log.Info("UTIL", "Stripping any special characters from {0}".format(string), verbosity=goodlogging.Verbosity.MINIMAL)
   string = string.strip()
   string = re.sub('[&]', 'and', string)
-  string = re.sub('[@#$%^&*{};:,/<>?\|`~=+]', '', string)
+  string = re.sub(r'[@#$%^&*{};:,/<>?\\|`~=+±§£]', '', string)
   string = re.sub('\s\s+', ' ', string)
 
   if stripAll:
@@ -104,7 +105,6 @@ def UserAcceptance(
   elif len(matchList) > 1:
     goodlogging.Log.Info("UTIL", "Multiple possible matches found: {0}".format(matchString))
     prompt = "Enter correct match from list or e"
-    option = 2
   else:
     if promptOnly is False:
       goodlogging.Log.Info("UTIL", "No match found")

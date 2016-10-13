@@ -23,12 +23,12 @@ class ShowInfo:
   #################################################
   # constructor
   #################################################
-  def __init__(self, showID = None, showName = None):
+  def __init__(self, showID=None, showName=None, seasonNum=None, episodeNum=None, episodeName=None):
     self.showID = showID
     self.showName = showName
-    self.seasonNum = None
-    self.episodeNum = None
-    self.episodeName = None
+    self.seasonNum = seasonNum
+    self.episodeNum = episodeNum
+    self.episodeName = episodeName
     self.multiPartEpisodeNumbers = []
 
   #################################################
@@ -93,26 +93,23 @@ class TVFile:
       return False
 
     episodeNumSet = set(re.findall("(?<=[xXeE_.-])[0-9]+", episodeNumSubstring.pop()))
+
     episodeNumList = [int(i) for i in episodeNumSet]
     episodeNumList.sort()
 
-    if len(episodeNumList) < 1:
-      goodlogging.Log.Info("TVFILE", "Incompatible filename no episode match detected: {0}".format(self.fileInfo.origPath))
-      return False
-    else:
-      episodeNum = "{0}".format(episodeNumList[0])
-      if len(episodeNumList) > 1:
-        episodeNumReference = episodeNumList[0]
-        for episodeNumIter in episodeNumList[1:]:
-          if episodeNumIter == (episodeNumReference+1):
-            strNum = "{0}".format(episodeNumIter)
-            if len(strNum) == 1:
-              strNum = "0{0}".format(strNum)
+    episodeNum = "{0}".format(episodeNumList[0])
+    if len(episodeNumList) > 1:
+      episodeNumReference = episodeNumList[0]
+      for episodeNumIter in episodeNumList[1:]:
+        if episodeNumIter == (episodeNumReference+1):
+          strNum = "{0}".format(episodeNumIter)
+          if len(strNum) == 1:
+            strNum = "0{0}".format(strNum)
 
-            self.showInfo.multiPartEpisodeNumbers.append(strNum)
-            episodeNumReference = episodeNumIter
-          else:
-            break
+          self.showInfo.multiPartEpisodeNumbers.append(strNum)
+          episodeNumReference = episodeNumIter
+        else:
+          break
 
     if len(episodeNum) == 1:
       episodeNum = "0{0}".format(episodeNum)
@@ -121,11 +118,13 @@ class TVFile:
 
     # Season Number
     seasonNumSet = set(re.findall("[sS]([0-9]+)", fileName))
+    preceedingS = True
 
     if len(seasonNumSet) == 1:
       seasonNum = seasonNumSet.pop()
     else:
       seasonNumSet = set(re.findall("([0-9]+)[xX](?:[0-9]+[xX])*", fileName))
+      preceedingS = False
 
       if len(seasonNumSet) == 1:
         seasonNum = seasonNumSet.pop()
@@ -139,7 +138,10 @@ class TVFile:
     self.showInfo.seasonNum = seasonNum
 
     # Show Name
-    showNameList = re.findall("(.+?)\s*[_.-]*\s*[sS]?[0-9]+[xXeE][0-9]+.*", fileName)
+    if preceedingS is True:
+      showNameList = re.findall("(.+?)\s*[_.-]*\s*[sS][0-9]+[xXeE][0-9]+.*", fileName)
+    else:
+      showNameList = re.findall("(.+?)\s*[_.-]*\s*[0-9]+[xXeE][0-9]+.*", fileName)
 
     if len(showNameList) == 1:
       showName = util.StripSpecialCharacters(showNameList[0].lower(), stripAll=True)
