@@ -24,14 +24,84 @@ import clear.util as util
 # TVRenamer
 #################################################
 class TVRenamer:
+  """
+  TV renamer class. The run method of this class
+  implements the main job flow for renaming all
+  TV files from a given file list.
+
+  Attributes:
+    This class has no public attributes.
+
+    These attributes are used internally:
+      _db : RenamerDB object
+        Object used for database access.
+
+      _fileList : list
+        List of tvfile.TVFile objects to rename.
+
+      _archiveDir : string
+        Directory to move archived file to.
+
+      _tvDir : string
+        Root directory for renamed TV files.
+
+      _forceCopy : boolean
+        Enables copying of files if target directory
+        is on a different file system.
+
+      _inPlaceRename : boolean
+        If set do renaming in the current directory.
+        Do not use the tvDir directory.
+
+      _skipUserInput : boolean
+        If set skip any user inputs. If a single option
+        is available this will be selected otherwise no
+        further action will be taken.
+
+      _guide : EPGuidesLookup object
+        Object for doing lookups from web TV guide.
+  """
+
   #################################################
   # constructor
   #################################################
-  def __init__(self, db, tvFileList, archiveDir, guideName = epguides.EPGuidesLookup.GUIDE_NAME, destDir = None, inPlaceRename = False, forceCopy = False, skipUserInput = False):
+  def __init__(self, db, tvFileList, archiveDir, guideName = epguides.EPGuidesLookup.GUIDE_NAME, tvDir = None, inPlaceRename = False, forceCopy = False, skipUserInput = False):
+    """
+    Constructor. Initialise object values.
+
+    Parameters:
+      db : RenamerDB object
+        Object used for database access.
+
+      tvFileList : list
+        List of tvfile.TVFile objects.
+
+      archiveDir : string
+        Directory to move archived file to.
+
+      guideName : string [optional: default = epguides.EPGuidesLookup.GUIDE_NAME]
+        Name of guide to use (e.g. EPGUIDES)
+
+      tvDir : string [optional: default = None]
+        Root directory for renamed TV files.
+
+      inPlaceRename : boolean [optional: default = False]
+        If set do renaming in the current directory.
+        Do not use the tvDir directory.
+
+      forceCopy : boolean [optional: default = False]
+        Enables copying of files if target directory
+        is on a different file system.
+
+      skipUserInput : boolean [optional: default = False]
+        If set skip any user inputs. If a single option
+        is available this will be selected otherwise no
+        further action will be taken.
+     """
     self._db            = db
     self._fileList      = tvFileList
-    self._tvDir         = destDir
     self._archiveDir    = archiveDir
+    self._tvDir         = tvDir
     self._forceCopy     = forceCopy
     self._inPlaceRename = inPlaceRename
     self._skipUserInput = skipUserInput
@@ -40,10 +110,17 @@ class TVRenamer:
   # *** INTERNAL CLASSES *** #
   ############################################################################
   # _SetGuide
-  # Select guide corresponding to guideName
-  # Supported: EPGUIDES
   ############################################################################
   def _SetGuide(self, guideName):
+    """
+    Select guide corresponding to guideName
+
+    Supported: EPGUIDES
+
+    Parameters:
+      guideName : string
+        Name of guide to use.
+    """
     if(guideName == epguides.EPGuidesLookup.GUIDE_NAME):
       self._guide = epguides.EPGuidesLookup()
     else:
@@ -51,18 +128,46 @@ class TVRenamer:
 
   ############################################################################
   # _GetUniqueFileShowNames
-  # Return a list containing all unique show names from tvFile list
   ############################################################################
   def _GetUniqueFileShowNames(self, tvFileList):
+    """
+    Return a list containing all unique show names from tvfile.TVFile object
+    list.
+
+    Parameters:
+      tvFileList : list
+        List of tvfile.TVFile objects.
+
+    Returns:
+      The set of show names from the tvfile.TVFile list.
+    """
     showNameList = [tvFile.fileInfo.showName for tvFile in tvFileList]
     return(set(showNameList))
 
   ############################################################################
   # _GetShowID
-  # Look up show name from database or guide. Allows user to accept or
-  # decline best match or to provide an alternate match to lookup.
   ############################################################################
   def _GetShowID(self, stringSearch, origStringSearch = None):
+    """
+    Search for given string as an existing entry in the database file name
+    table or, if no match is found, as a show name from the TV guide.
+
+    If an exact match is not found in the database the user can accept
+    or decline the best match from the TV guide or can provide an alternate
+    match to lookup.
+
+    Parameters:
+      stringSearch : string
+        String to look up in database or guide.
+
+      origStringSearch : string [optional: default = None]
+        Original search string, used by recusive function calls.
+
+    Returns:
+      If no show id could be found this returns None, otherwise
+      it returns a tvfile.ShowInfo object containing show name
+      and show id.
+    """
     showInfo = tvfile.ShowInfo()
 
     if origStringSearch is None:
@@ -153,9 +258,20 @@ class TVRenamer:
       return showInfo
 
   ############################################################################
-  # _GetShowName
+  # _GetShowInfo
   ############################################################################
   def _GetShowInfo(self, stringSearch):
+    """
+    Calls GetShowID and does post processing checks on result.
+
+    Parameters:
+      stringSearch : string
+        String to look up in database or guide.
+
+    Returns:
+      If GetShowID returns None or if it returns showInfo with showID = None
+      then this will return None, otherwise it will return the showInfo object.
+    """
     goodlogging.Log.Info("RENAMER", "Looking up show info for: {0}".format(stringSearch))
     goodlogging.Log.IncreaseIndent()
     showInfo = self._GetShowID(stringSearch)
@@ -176,14 +292,32 @@ class TVRenamer:
 
   ############################################################################
   # _MoveFileToTVLibrary
-  # If file already exists at dest - rename inplace
-  # Else if file on same file system and doesn't exist - rename
-  # Else if src/dst on different file systems
-  #    - rename in-place
-  #    - copy to dest (if forceCopy is True)
-  #    - move orig to PROCESSED
   ############################################################################
   def _MoveFileToLibrary(self, oldPath, newPath):
+    """
+    Move file from old file path to new file path. This follows certain
+    conditions:
+
+      If file already exists at destination do rename inplace.
+
+      If file destination is on same file system and doesn't exist rename and
+      move.
+
+      If source and destination are on different file systems do rename in-place,
+        and if forceCopy is true copy to dest and move orig to archive directory.
+
+    Parameters:
+      oldPath : string
+        Old file path.
+
+      newPath : string
+        New file path.
+
+    Returns:
+      If old and new file paths are the same or if the new file path already exists
+      this returns False. If file rename is skipped for any reason this returns None
+      otherwise if rename completes okay it returns True.
+    """
     if oldPath == newPath:
       return False
 
@@ -225,7 +359,7 @@ class TVRenamer:
               err = ex3.args[0]
               goodlogging.Log.Info("RENAMER", "File copy failed - Shutil Error: {0}".format(err))
             else:
-              util.ArchiveProcessedFile(renameFilePath)
+              util.ArchiveProcessedFile(renameFilePath, self._archiveDir)
               return True
           else:
             goodlogging.Log.Info("RENAMER", "File copy skipped - copying between file systems is disabled (enabling this functionality is slow)")
@@ -241,6 +375,23 @@ class TVRenamer:
   # _CreateNewSeasonDir
   ############################################################################
   def _CreateNewSeasonDir(self, seasonNum):
+    """
+    Creates a new season directory name in the form 'Season <NUM>'.
+
+    If skipUserInput is True this will be accepted by default otherwise the
+    user can choose to accept this, use the base show directory or enter
+    a different name.
+
+    Parameters:
+      seasonNum : int
+        Season number
+
+    Returns:
+      If the user accepts the generated directory name or gives a new name
+      this will be returned. If it the user chooses to use the base
+      directory an empty string is returned. If the user chooses to skip at
+      this input stage None is returned.
+    """
     seasonDirName = "Season {0}".format(seasonNum)
     goodlogging.Log.Info("RENAMER", "Generated directory name: '{0}'".format(seasonDirName))
 
@@ -263,6 +414,28 @@ class TVRenamer:
   # _LookUpSeasonDirectory
   ############################################################################
   def _LookUpSeasonDirectory(self, showID, showDir, seasonNum):
+    """
+    Look up season directory. First attempt to find match from database,
+    otherwise search TV show directory. If no match is found in the database
+    the user can choose to accept a match from the TV show directory, enter
+    a new directory name to use or accept an autogenerated name.
+
+    Parameters:
+      showID : int
+        Show ID number
+
+      showDir : string
+        Path to show file directory
+
+      seasonNum : int
+        Season number
+
+    Returns:
+      seasonDirName : string
+        Name of season directory to use. This can be a blank string to
+        use the root show directory, an autogenerated string or a user
+        given string.
+    """
     goodlogging.Log.Info("RENAMER", "Looking up season directory for show {0}".format(showID))
     goodlogging.Log.IncreaseIndent()
 
@@ -343,6 +516,21 @@ class TVRenamer:
   # _CreateNewShowDir
   ############################################################################
   def _CreateNewShowDir(self, showName):
+    """
+    Create new directory name for show. An autogenerated choice, which is the
+    showName input that has been stripped of special characters, is proposed
+    which the user can accept or they can enter a new name to use. If the
+    skipUserInput variable is True the autogenerated value is accepted
+    by default.
+
+    Parameters:
+      showName : string
+        Name of TV show
+
+    Returns:
+      Either the autogenerated directory name, the user given directory name
+      or None if the user chooses to skip at this input stage.
+    """
     stripedDir = util.StripSpecialCharacters(showName)
     goodlogging.Log.Info("RENAMER", "Suggested show directory name is: '{0}'".format(stripedDir))
 
@@ -360,9 +548,31 @@ class TVRenamer:
 
   ############################################################################
   # _GenerateLibraryPath
-  #
   ############################################################################
   def _GenerateLibraryPath(self, tvFile, libraryDir):
+    """
+    Creates a full path for TV file in TV library.
+
+    This initially attempts to directly match a show directory in the database,
+    if this fails it searches the library directory for the best match. The
+    user can then select an existing match or can propose a new directory to
+    use as the show root directory.
+
+    The season directory is also generated and added to the show and
+    library directories. This is then used by the tvFile GenerateNewFilePath
+    method to create a new path for the file.
+
+    Parameters:
+      tvFile : tvfile.TVFile object
+        Contains show and file info.
+
+      libraryDir : string
+        Root path of TV library directory.
+
+    Returns:
+      tvFile : tvFile.TVFile object
+        This is an updated version of the input object.
+    """
     goodlogging.Log.Info("RENAMER", "Looking up library directory in database for show: {0}".format(tvFile.showInfo.showName))
     goodlogging.Log.IncreaseIndent()
     showID, showName, showDir = self._db.SearchTVLibrary(showName = tvFile.showInfo.showName)[0]
@@ -432,6 +642,25 @@ class TVRenamer:
   # Run
   ############################################################################
   def Run(self):
+    """
+    Renames all TV files from the constructor given file list.
+
+    It follows a number of key steps:
+
+      1) Extract a list of unique show titles from file name and lookup
+         actual show names from database or TV guide.
+      2) Update each file with showID and showName.
+      3) Get episode name for all remaining files in valid list.
+      4) Print file details and generate new file paths.
+      5) Rename files.
+      6) List skipped and incompatible files.
+
+    Parameters:
+      N/A
+
+    Returns:
+      N/A
+    """
     # ------------------------------------------------------------------------
     # Get list of unique fileInfo show names and find matching actual show
     # names from database or TV guide

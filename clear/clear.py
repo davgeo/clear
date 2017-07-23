@@ -25,10 +25,84 @@ import clear.extract as extract
 # ClearManager
 #################################################
 class ClearManager:
+  """
+  Clear manager class.
+
+  The run method of this class implements the full
+  clear flow. This includes parsing script arguments,
+  generating a file list (including doing file
+  extraction) and finally calling the run method
+  of the TVRenamer class.
+
+  Attributes:
+    This class has no public attributes.
+
+    These attributes are used internally:
+    _db : RenamerDB class
+      Reference to database object.
+
+    _sourceDir : string
+      Root of source directory.
+
+    _tvDir : string
+      Root directory for renamed TV files.
+
+    _archiveDir : string
+      Name of directory to move any archivable/deletable
+      files (e.g. compressed files after extraction)
+
+    _supportedFormatsList : list
+      List of supported formats to process for renaming
+      or for file extraction from compressed archives.
+      Looked up from database.
+
+    _ignoredDirsList : list
+      List of directories to ignore in recusive search
+      of files from source directory. Looked up from
+      database.
+
+    _databasePath : string
+      Path to database file.
+
+    _inPlaceRename : boolean
+      Default to False. Set by plusarg. Used to force
+      renaming to be done in place (i.e. the target directory
+      is the source directory). In this case the value
+      of _tvDir is ignored.
+
+    _crossSystemCopyEnabled : boolean
+      Default to False. Set by plusarg. Enables copying
+      of files if source and target direcories exist on
+      different file systems.
+
+    _dbUpdate : boolean
+      Default to False. Set by plusarg. Enables manual
+      updating of database before proceeding with the
+      normal job flow.
+
+    _dbPrint : boolean
+      Default to False. Set by plusarg. If set prints
+      all tables in the database before proceeding with
+      the normal job flow.
+
+    _enableExtract : boolean
+      Default to False. Set by plusarg. Enables extraction
+      of files from compressed archives.
+
+    _skipUserInputRename : boolean
+      Default to False. Set by plusarg. If set all user
+      input during rename phase is skipped.
+
+    _skipUserInputExtract : boolean
+      Default to False. Set by plusarg. If set all user
+      input during extract phase is skipped.
+  """
+
   #################################################
   # constructor
   #################################################
   def __init__(self):
+    """ Constructor. Initialise object values. """
     self._db = None
     self._sourceDir = None
     self._tvDir = None
@@ -48,6 +122,29 @@ class ClearManager:
   # _UserUpdateConfigValue
   ############################################################################
   def _UserUpdateConfigValue(self, configKey, strDescriptor, isDir = True, dbConfigValue = None):
+    """
+    Allow user to set or update config values in the database table.
+    This is always called if no valid entry exists in the table already.
+
+    Parameters:
+      configKey : string
+        Name of config field.
+
+      strDescriptor : string
+        Description of config field.
+
+      isDir : boolean [optional : default = True]
+        Set to True if config value is
+        expected to be a directory path.
+
+      dbConfigValue : string [optional : default = None]
+        The value of an existing entry
+        for the given config field.
+
+    Returns:
+      newConfigValue : string
+        New value for given config field in database.
+    """
     newConfigValue = None
 
     if dbConfigValue is None:
@@ -78,6 +175,25 @@ class ClearManager:
   # _GetConfigValue
   ############################################################################
   def _GetConfigValue(self, configKey, strDescriptor, isDir = True):
+    """
+    Get configuration value from database table. If no value found user
+    will be prompted to enter one.
+
+    Parameters:
+      configKey : string
+        Name of config field.
+
+      strDescriptor : string
+        Description of config field.
+
+      isDir : boolean [optional : default = True]
+        Set to True if config value is
+        expected to be a directory path.
+
+    Returns:
+      configValue : string
+        Value for given config field in database.
+    """
     goodlogging.Log.Info("CLEAR", "Loading {0} from database:".format(strDescriptor))
     goodlogging.Log.IncreaseIndent()
     configValue = self._db.GetConfigValue(configKey)
@@ -101,6 +217,23 @@ class ClearManager:
   # _UserUpdateSupportedFormats
   ############################################################################
   def _UserUpdateSupportedFormats(self, origFormatList = []):
+    """
+    Add supported formats to database table. Always called if the
+    database table is empty.
+
+    User can build a list of entries to add to the database table
+    (one entry at a time). Once finished they select the finish option
+    and all entries will be added to the table. They can reset the
+    list at any time before finishing.
+
+    Parameters:
+      origFormatList : list [optional : default = []]
+        List of original formats from database table.
+
+    Returns:
+      formatList : string
+        List of updated formats from database table.
+    """
     formatList = list(origFormatList)
 
     inputDone = None
@@ -137,6 +270,17 @@ class ClearManager:
   # _GetSupportedFormats
   ############################################################################
   def _GetSupportedFormats(self):
+    """
+    Get supported format values from database table. If no values found user
+    will be prompted to enter values for this table.
+
+    Parameters:
+      N/A
+
+    Returns:
+      formatList : string
+        List of supported formats from database table.
+    """
     goodlogging.Log.Info("CLEAR", "Loading supported formats from database:")
     goodlogging.Log.IncreaseIndent()
     formatList = self._db.GetSupportedFormats()
@@ -155,6 +299,23 @@ class ClearManager:
   # _UserUpdateIgnoredDirs
   ############################################################################
   def _UserUpdateIgnoredDirs(self, origIgnoredDirs = []):
+    """
+    Add ignored directories to database table. Always called if the
+    database table is empty.
+
+    User can build a list of entries to add to the database table
+    (one entry at a time). Once finished they select the finish option
+    and all entries will be added to the table. They can reset the
+    list at any time before finishing.
+
+    Parameters:
+      origIgnoredDirs : list [optional : default = []]
+        List of original ignored directories from database table.
+
+    Returns:
+      ignoredDirs : string
+        List of updated ignored directories from database table.
+    """
     ignoredDirs = list(origIgnoredDirs)
 
     inputDone = None
@@ -189,6 +350,17 @@ class ClearManager:
   # GetIgnoredDirs
   ############################################################################
   def _GetIgnoredDirs(self):
+    """
+    Get ignored directories values from database table. If no values found user
+    will be prompted to enter values for this table.
+
+    Parameters:
+      N/A
+
+    Returns:
+      ignoredDirs : string
+        List of ignored directories from database table.
+    """
     goodlogging.Log.Info("CLEAR", "Loading ignored directories from database:")
     goodlogging.Log.IncreaseIndent()
     ignoredDirs = self._db.GetIgnoredDirs()
@@ -210,6 +382,13 @@ class ClearManager:
   # GetDatabaseConfig
   ############################################################################
   def _GetDatabaseConfig(self):
+    """
+    Get all configuration from database.
+
+    This includes values from the Config table as well as populating lists
+    for supported formats and ignored directories from their respective
+    database tables.
+    """
     goodlogging.Log.Seperator()
     goodlogging.Log.Info("CLEAR", "Getting configuration variables...")
     goodlogging.Log.IncreaseIndent()
@@ -244,6 +423,7 @@ class ClearManager:
   # GetArgs
   ############################################################################
   def _GetArgs(self):
+    """ Parse plusargs. """
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--src', help='override database source directory')
     parser.add_argument('-d', '--dst', help='override database destination directory')
@@ -321,9 +501,32 @@ class ClearManager:
 
   ############################################################################
   # GetSupportedFilesInDir
-  # Get all supported files from given directory folder
   ############################################################################
   def _GetSupportedFilesInDir(self, fileDir, fileList, supportedFormatList, ignoreDirList):
+    """
+    Recursively get all supported files given a root search directory.
+
+    Supported file extensions are given as a list, as are any directories which
+    should be ignored.
+
+    The result will be appended to the given file list argument.
+
+    Parameters:
+      fileDir : string
+        Path to root of directory tree to search.
+
+      fileList : string
+        List to add any found files to.
+
+      supportedFormatList : list
+        List of supported file extensions.
+
+      ignoreDirList : list
+        List of directories to ignore.
+
+    Returns:
+      Any supported files which are found will be appended to fileList.
+    """
     goodlogging.Log.Info("CLEAR", "Parsing file directory: {0}".format(fileDir))
     if os.path.isdir(fileDir) is True:
       for globPath in glob.glob(os.path.join(fileDir, '*')):
@@ -343,10 +546,20 @@ class ClearManager:
 
   ############################################################################
   # Run
-  # Get all tv files in source directory
-  # Run renamer process
   ############################################################################
   def Run(self):
+    """
+    Main entry point for ClearManager class.
+
+    Does the following steps:
+    - Parse script argumnents.
+    - Opionally print or update database tables.
+    - Get all configuration settings from database.
+    - Optionally parse directory for file extraction.
+    - Recersively parse source directory for files matching
+      supported format list.
+    - Call renamer.TVRenamer with file list.
+    """
     self._GetArgs()
 
     goodlogging.Log.Info("CLEAR", "Using database: {0}".format(self._databasePath))
@@ -396,6 +609,7 @@ class ClearManager:
 # main
 ############################################################################
 def main():
+  ''' Main entry point for clear program '''
   prog = ClearManager()
   prog.Run()
 

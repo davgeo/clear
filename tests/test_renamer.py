@@ -216,7 +216,8 @@ class Clear(unittest.TestCase):
   @mock.patch('os.makedirs')
   def test_renamer_MoveFileToLibrary(self, mock_makedirs, mock_pathexists, mock_rename,
                                     mock_copy, mock_archivefile, mock_utilcheck):
-    renamer = clear.renamer.TVRenamer('fakedir', 'fakelist', 'fakedir')
+    archiveDir = 'fakearchiveDir'
+    renamer = clear.renamer.TVRenamer('fakedb', 'fakelist', archiveDir)
 
     # Test old path equals new path
     oldPath = 'this/path.file'
@@ -254,6 +255,7 @@ class Clear(unittest.TestCase):
     result = renamer._MoveFileToLibrary(oldPath, newPath)
     mock_utilcheck.assert_called_once_with(renamePath)
     mock_copy.assert_not_called()
+    mock_archivefile.assert_not_called()
     self.assertIsNot(result, True)
 
     # As above except new and old path share the same file name
@@ -263,6 +265,7 @@ class Clear(unittest.TestCase):
     result = renamer._MoveFileToLibrary(oldPath, newPath)
     mock_utilcheck.assert_not_called()
     mock_copy.assert_not_called()
+    mock_archivefile.assert_not_called()
     self.assertIsNot(result, True)
 
     # Test different file system exception with enabled copy
@@ -271,6 +274,7 @@ class Clear(unittest.TestCase):
     mock_rename.side_effect = [OSError(errno.EXDEV, 'EXDEV Error'), True]
     result = renamer._MoveFileToLibrary(oldPath, newPath)
     mock_copy.assert_called_once_with(checkPath, newPath)
+    mock_archivefile.assert_called_once_with(checkPath, archiveDir)
     self.assertIs(result, True)
 
     # As above except second rename also hits exception

@@ -20,10 +20,44 @@ import clear.util as util
 # ShowInfo
 #################################################
 class ShowInfo:
+  """
+  Show infomation object.
+
+  Attributes:
+    showID : int
+      Unique identifier for show
+
+    showName : string
+      Show name
+
+    seasonNum : int
+      Season number
+
+    episodeNum : int
+      Episode number
+
+    episodeName : int
+      Episode name
+
+    multiPartEpisodeNumbers : list
+      List containing any subsquent episode numbers
+      which are also part of this file (e.g. S01_02)
+  """
+
   #################################################
   # constructor
   #################################################
   def __init__(self, showID=None, showName=None, seasonNum=None, episodeNum=None, episodeName=None):
+    """
+    Constructor. Initialise object values.
+
+    Parameters:
+      showID : int [optional: default = None]
+      showName : string [optional: default = None]
+      seasonNum : int [optional: default = None]
+      episodeNum : int [optional: default = None]
+      episodeName : int [optional: default = None]
+     """
     self.showID = showID
     self.showName = showName
     self.seasonNum = seasonNum
@@ -36,6 +70,19 @@ class ShowInfo:
   # define preferred sort order
   #################################################
   def __lt__(self, other):
+    """
+    Less than comparison of ShowInfo objects.
+    If any field is None return False otherwise sort
+    by showName, then seasonNum then by episodeNum.
+
+    Parameters:
+      other : ShowInfo object
+        Object to compare against
+
+    Returns:
+      True if this object is less than other,
+      otherwise it returns False.
+    """
     if self.showID is None or other.showID is None:
       return False
     elif self.showID == other.showID:
@@ -55,10 +102,28 @@ class ShowInfo:
 # TVFile
 #################################################
 class TVFile:
+  """
+  TV file infomation object.
+
+  Attributes:
+    fileInfo : types.SimpleNamespace object
+      Contains file infomation
+
+    showInfo : ShowInfo object
+      Contains show information
+  """
+
   #################################################
   # constructor
   #################################################
   def __init__(self, filePath):
+    """
+    Constructor. Initialise object values.
+
+    Parameters:
+      filePath : string
+        Original path to file
+    """
     self.fileInfo = types.SimpleNamespace()
     self.fileInfo.origPath = filePath
     self.fileInfo.newPath = None
@@ -71,18 +136,42 @@ class TVFile:
   # define preferred sort order
   #################################################
   def __lt__(self, other):
+    """
+    Less than comparison of TVFile objects.
+    Sort by showInfo value
+
+    Parameters:
+      other : TVFile object
+        Object to compare against
+
+    Returns:
+      True if this object is less than other,
+      otherwise it returns False.
+    """
     return self.showInfo < other.showInfo
 
   ############################################################################
   # GetShowDetails
-  # Extract show details from file name
-  # Expecting unique season and episode
-  # Supports formats S<NUM>E<NUM> or <NUM>x<NUM> where letters are case insensitive
-  #   and number can be one or more digits.
-  # All information preceeding season number is used for the show name lookup
-  # This string is forced to lowercase and stripped of special characters
   ############################################################################
   def GetShowDetails(self):
+    """
+    Extract show name, season number and episode number from file name.
+
+    Supports formats S<NUM>E<NUM> or <NUM>x<NUM> for season and episode numbers
+    where letters are case insensitive and number can be one or more digits. It
+    expects season number to be unique however it can handle either single or
+    multipart episodes (consecutive values only).
+
+    All information preceeding season number is used for the show name lookup. This
+    string is forced to lowercase and stripped of special characters
+
+    Parameters:
+      N/A
+
+    Returns:
+      False if an incompatible file name is found, otherwise return True.
+    """
+
     fileName = os.path.splitext(os.path.basename(self.fileInfo.origPath))[0]
 
     # Episode Number
@@ -154,10 +243,19 @@ class TVFile:
 
   ############################################################################
   # GenerateNewFileName
-  # Create new file name from show name, season number, episode number
-  # and episode name.
   ############################################################################
   def GenerateNewFileName(self):
+    """
+    Create new file name from show name, season number, episode number
+    and episode name in format ShowName.S<NUM>.E<NUM>.EpisodeName.
+
+    Parameters:
+      N/A
+
+    Returns:
+      newFileName : string
+        New file name in format ShowName.S<NUM>.E<NUM>.EpisodeName.
+    """
     if self.showInfo.showName is not None and self.showInfo.seasonNum is not None and \
        self.showInfo.episodeNum is not None and self.showInfo.episodeName is not None:
       ext = os.path.splitext(self.fileInfo.origPath)[1]
@@ -173,10 +271,19 @@ class TVFile:
 
   ############################################################################
   # GenerateNewFilePath
-  # Create new file path. If a fileDir is provided it will be used otherwise
-  # the original file path is used.
   ############################################################################
   def GenerateNewFilePath(self, fileDir = None):
+    """
+    Create new file path. If a fileDir is provided it will be used otherwise
+    the original file path is used. Updates file info object with new path.
+
+    Parameters:
+      fileDir : string [optional : default = None]
+        Optional file directory
+
+    Returns:
+      N/A
+    """
     newFileName = self.GenerateNewFileName()
     if newFileName is not None:
       if fileDir is None:
@@ -187,6 +294,7 @@ class TVFile:
   # Print
   ############################################################################
   def Print(self):
+    """ Print contents of showInfo and FileInfo object """
     goodlogging.Log.Info("TVFILE", "TV File details are:")
     goodlogging.Log.IncreaseIndent()
     goodlogging.Log.Info("TVFILE", "Original File Path      = {0}".format(self.fileInfo.origPath))

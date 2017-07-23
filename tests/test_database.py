@@ -61,7 +61,7 @@ class ClearDatabase(unittest.TestCase):
   #################################################
   def test_db_ConfigTable(self):
     # Ensure inital Config table is empty
-    result = self.db._QueryDatabase("SELECT * FROM Config", error = False)
+    result = self.db._ActionDatabase("SELECT * FROM Config", error = False)
     self.assertEqual(result, [])
 
     # Add config value and check it is set correctly
@@ -76,7 +76,7 @@ class ClearDatabase(unittest.TestCase):
 
     # Try to forcibly corrupt database entry (duplicate entry for TestField)
     with self.assertRaises(sqlite3.IntegrityError):
-      self.db._QueryDatabase("INSERT INTO Config VALUES (?,?)", ('TestField', 'TestValue3'))
+      self.db._ActionDatabase("INSERT INTO Config VALUES (?,?)", ('TestField', 'TestValue3'))
 
     # Check get function on non-existant field entry
     dbValue = self.db.GetConfigValue('InvalidField')
@@ -84,7 +84,7 @@ class ClearDatabase(unittest.TestCase):
 
     # Purge table and confirm
     self.db._PurgeTable('Config')
-    result = self.db._QueryDatabase("SELECT * FROM Config", error = False)
+    result = self.db._ActionDatabase("SELECT * FROM Config", error = False)
     self.assertEqual(result, [])
 
   #################################################
@@ -92,7 +92,7 @@ class ClearDatabase(unittest.TestCase):
   #################################################
   def test_db_SupportedFormatTable(self):
     # Ensure inital SupportedFormat table is empty
-    result = self.db._QueryDatabase("SELECT * FROM SupportedFormat", error = False)
+    result = self.db._ActionDatabase("SELECT * FROM SupportedFormat", error = False)
     self.assertEqual(result, [])
 
     # Add file formats to table and check they are set correctly
@@ -185,7 +185,7 @@ class ClearDatabase(unittest.TestCase):
   #################################################
   def test_db_FileNameTable(self):
     # Ensure initial FileName table is empty
-    result = self.db._QueryDatabase("SELECT * FROM FileName", error = False)
+    result = self.db._ActionDatabase("SELECT * FROM FileName", error = False)
     self.assertEqual(result, [])
 
     # Add filenames to table
@@ -198,7 +198,7 @@ class ClearDatabase(unittest.TestCase):
       self.db.AddToFileNameTable(fileNameList[0], 0)
 
     # Check filename table matches expected
-    result = self.db._QueryDatabase("SELECT * FROM FileName", error = False)
+    result = self.db._ActionDatabase("SELECT * FROM FileName", error = False)
     for count, item in enumerate(result):
       self.assertEqual(item, ('filename{}'.format(count+1), count+1))
 
@@ -213,7 +213,7 @@ class ClearDatabase(unittest.TestCase):
 
     # Purge table and confirm
     self.db._PurgeTable('FileName')
-    result = self.db._QueryDatabase("SELECT * FROM FileName", error = False)
+    result = self.db._ActionDatabase("SELECT * FROM FileName", error = False)
     self.assertEqual(result, [])
 
   #################################################
@@ -221,19 +221,19 @@ class ClearDatabase(unittest.TestCase):
   #################################################
   def test_db_SeasonDirTable(self):
     # Ensure initial SeasonDir table is empty
-    result = self.db._QueryDatabase("SELECT * FROM SeasonDir", error = False)
+    result = self.db._ActionDatabase("SELECT * FROM SeasonDir", error = False)
     self.assertEqual(result, [])
 
     # Add season directories to table and check they are set correctly
     seasonList = [(1, 1, 'Season 1'), (1, 2, 'Season 2'), (2, 5, 'Season 5')]
     for item in seasonList:
       self.db.AddSeasonDirTable(item[0], item[1], item[2])
-    result = self.db._QueryDatabase("SELECT * FROM SeasonDir", error = False)
+    result = self.db._ActionDatabase("SELECT * FROM SeasonDir", error = False)
     self.assertEqual(result, seasonList)
 
     # Try adding a duplicate entry and check table is the same
     self.db.AddSeasonDirTable(seasonList[0][0], seasonList[0][1], seasonList[0][2])
-    result = self.db._QueryDatabase("SELECT * FROM SeasonDir", error = False)
+    result = self.db._ActionDatabase("SELECT * FROM SeasonDir", error = False)
     self.assertEqual(result, seasonList)
 
     # Try adding a duplicate entry with different SeasonDir and check for fatal error
@@ -251,7 +251,7 @@ class ClearDatabase(unittest.TestCase):
 
     # Purge table and confirm
     self.db._PurgeTable('SeasonDir')
-    result = self.db._QueryDatabase("SELECT * FROM SeasonDir", error = False)
+    result = self.db._ActionDatabase("SELECT * FROM SeasonDir", error = False)
     self.assertEqual(result, [])
 
   #################################################
@@ -309,7 +309,7 @@ class ClearDatabase(unittest.TestCase):
     # Attempt to add to table with invalid format, check table is still empty
     mock_input.side_effect = ['a', 'Config Name', 'c', 'f']
     self.db.ManualUpdateTables()
-    dbValue = self.db._QueryDatabase("SELECT * FROM Config")
+    dbValue = self.db._ActionDatabase("SELECT * FROM Config")
     self.assertEqual(dbValue, [])
 
     # Atempt to add to non-existant table
@@ -317,7 +317,7 @@ class ClearDatabase(unittest.TestCase):
     self.db.ManualUpdateTables()
 
     with self.assertRaises(sqlite3.OperationalError):
-      dbValue = self.db._QueryDatabase("SELECT * FROM NonExistant")
+      dbValue = self.db._ActionDatabase("SELECT * FROM NonExistant")
 
     # Attempt unknown user response
     mock_input.side_effect = ['unknowninput', 'f']

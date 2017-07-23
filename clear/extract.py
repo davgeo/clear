@@ -23,21 +23,61 @@ rarfile.PATH_SEP = os.sep
 
 ############################################################################
 # GetCompressedFilesInDir
-# Get all supported files from given directory folder
+# TODO: Add recursive lookup for nested directory tree
 ############################################################################
 def GetCompressedFilesInDir(fileDir, fileList, ignoreDirList, supportedFormatList = ['.rar',]):
+  """
+  Get all supported files from given directory folder. Appends to given file list.
+
+  Parameters:
+    fileDir : string
+      File directory to search.
+
+    fileList : list
+      List which any file matches will be added to.
+
+    ignoreDirList : list
+      List of directories to ignore in recursive lookup (currently unused).
+
+    supportedFormatList : list [optional : default = ['.rar',]]
+      List of supported file formats to search for.
+
+  Returns:
+    N/A
+  """
   goodlogging.Log.Info("EXTRACT", "Parsing file directory: {0}".format(fileDir))
   if os.path.isdir(fileDir) is True:
     for globPath in glob.glob(os.path.join(fileDir, '*')):
       if os.path.splitext(globPath)[1] in supportedFormatList:
         fileList.append(globPath)
-        # TODO: Recursive lookup for nested directory tree
 
 ############################################################################
 # MultipartArchiving
-# Archive all parts of multi-part archive only when extracted via part1
 ############################################################################
 def MultipartArchiving(firstPartExtractList, otherPartSkippedList, archiveDir, otherPartFilePath = None):
+  """
+  Archive all parts of multi-part compressed file.
+
+  If file has been extracted (via part1) then move all subsequent parts directly to archive directory.
+  If file has not been extracted then if part >1 add to other part skipped list and only archive
+  when the first part is sent for archiving.
+
+  Parameters:
+    firstPartExtractList : list
+      File directory to search.
+
+    otherPartSkippedList : list
+      List which any file matches will be added to.
+
+    archiveDir : list
+      List of directories to ignore in recursive lookup (currently unused).
+
+    otherPartFilePath : list [optional : default = None]
+      List of supported file formats to search for.
+
+  Returns:
+    N/A
+  """
   if otherPartFilePath is None:
     for filePath in list(otherPartSkippedList):
       MultipartArchiving(firstPartExtractList, otherPartSkippedList, archiveDir, filePath)
@@ -53,9 +93,24 @@ def MultipartArchiving(firstPartExtractList, otherPartSkippedList, archiveDir, o
 
 ############################################################################
 # DoRarExtraction
-# RAR extraction with exception catching
 ############################################################################
 def DoRarExtraction(rarArchive, targetFile, dstDir):
+  """
+  RAR extraction with exception catching
+
+  Parameters:
+    rarArchive : RarFile object
+      RarFile object to extract.
+
+    targetFile : string
+      Target file name.
+
+    dstDir : string
+      Target directory.
+
+  Returns:
+    False if rar extraction failed, otherwise True.
+  """
   try:
     rarArchive.extract(targetFile, dstDir)
   except BaseException as ex:
@@ -66,9 +121,19 @@ def DoRarExtraction(rarArchive, targetFile, dstDir):
 
 ############################################################################
 # GetRarPassword
-# Add extraction password to rar archive
 ############################################################################
 def GetRarPassword(skipUserInput):
+  """
+  Get password for rar archive from user input.
+
+  Parameters:
+    skipUserInput : boolean
+      Set to skip user input.
+
+  Returns:
+    If no password is given then returns False otherwise returns user
+    response string.
+  """
   goodlogging.Log.Info("EXTRACT", "RAR file needs password to extract")
   if skipUserInput is False:
     prompt = "Enter password, 'x' to skip this file or 'exit' to quit this program: "
@@ -87,9 +152,18 @@ def GetRarPassword(skipUserInput):
 
 ############################################################################
 # CheckPasswordReuse
-# Check with user for password reuse
 ############################################################################
 def CheckPasswordReuse(skipUserInput):
+  """
+  Check with user for password reuse.
+
+  Parameters:
+    skipUserInput : boolean
+      Set to skip user input.
+
+  Returns:
+    Integer from -1 to 2 depending on user response.
+  """
   goodlogging.Log.Info("EXTRACT", "RAR files needs password to extract")
   if skipUserInput is False:
     prompt = "Enter 't' to reuse the last password for just this file, " \
@@ -112,11 +186,30 @@ def CheckPasswordReuse(skipUserInput):
 
 ############################################################################
 # Extract
-# Iterate through fileList and extract all files matching fileFormatList
-# from each rar file. After sucessful extraction move rar files to archive
-# directory.
 ############################################################################
 def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
+  """
+  Iterate through given file list and extract all files matching the file
+  format list from each RAR file. After sucessful extraction move RAR files to
+  archive directory.
+
+  Parameters:
+    fileList : list
+      List of files to attempt to extract.
+
+    fileFormatList : list
+      List of file formats to extract from each RAR archive.
+
+    archiveDir : string
+      Directory to move RAR files once extract is complete.
+
+    skipUserInput : boolean
+      Set to skip any potential user input (if a single option is available
+      it will be selected otherwise the user input will default to take no action).
+
+  Returns:
+    N/A
+  """
   goodlogging.Log.Info("EXTRACT", "Extracting files from compressed archives")
   goodlogging.Log.IncreaseIndent()
   if len(fileList) == 0:
