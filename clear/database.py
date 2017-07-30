@@ -1,10 +1,5 @@
-'''
+""" SQLite database control """
 
-database.py
-
-SQLite database control
-
-'''
 # Python default package imports
 import sqlite3
 import os
@@ -24,19 +19,21 @@ class RenamerDB:
   Database control class. Use to change or
   query table entries in an sqlite database.
 
-  Attributes:
-    logVerbosity : goodlogging.Verbosity type
+  Attributes
+  ----------
+    logVerbosity : goodlogging.Verbosity
       Define the logging verbosity for the class.
 
-    These attributes are used internally:
-      _dbPath : string
-        Path to sqlite database file.
+    _dbPath : string
+      Path to sqlite database file.
 
-      _tableDict : dict
-        A dictionary mapping database table
-        names with the column names of that
-        table.
+    _tableDict : dict
+      A dictionary mapping database table
+      names with the column names of that
+      table.
 
+  Notes
+  ----------
   Database tables:
     Config (Name, Value)
       Configuration parameters.
@@ -76,7 +73,8 @@ class RenamerDB:
     Creates database if it does not already exist at
     given path.
 
-    Parameters:
+    Parameters
+    ----------
       dbPath : string
         Path to sqlite database file.
     """
@@ -142,7 +140,8 @@ class RenamerDB:
     """
     Do action on database.
 
-    Parameters:
+    Parameters
+    ----------
       cmd : string
         SQL command.
 
@@ -157,7 +156,8 @@ class RenamerDB:
         If False then any sqlite3.OperationalError exceptions will cause this
         function to return None, otherwise the exception will be raised.
 
-    Returns:
+    Returns
+    ----------
       If a valid result is obtained from the database this will be returned.
       If an error occurs and the error argument is set to False then the
       return value will be None.
@@ -185,12 +185,10 @@ class RenamerDB:
     """
     Deletes all rows from given table without dropping table.
 
-    Parameters:
+    Parameters
+    ----------
       tableName : string
         Name of table.
-
-    Returns:
-      N/A
     """
     goodlogging.Log.Info("DB", "Deleting all entries from table {0}".format(tableName), verbosity=self.logVerbosity)
     self._ActionDatabase("DELETE FROM {0}".format(tableName))
@@ -202,14 +200,17 @@ class RenamerDB:
     """
     Match given field name in Config table and return corresponding value.
 
-    Parameters:
+    Parameters
+    ----------
       fieldName : string
         String matching Name column in Config table.
 
-    Returns:
-      If a match is found the corresponding entry in the Value column
-      is returned, otherwise None is returned (or if multiple matches are found
-      a fatal error is raised).
+    Returns
+    ----------
+      string or None
+        If a match is found the corresponding entry in the Value column of the
+        database table is returned, otherwise None is returned (or if multiple
+        matches are found a fatal error is raised).
     """
     result = self._ActionDatabase("SELECT Value FROM Config WHERE Name=?", (fieldName, ))
 
@@ -233,15 +234,13 @@ class RenamerDB:
     If a entry already exists this is updated with the new value, otherwise
     a new entry is added.
 
-    Parameters:
+    Parameters
+    ----------
       fieldName : string
         String to be inserted or matched against Name column in Config table.
 
       value : string
         Entry to be inserted or updated in Value column of Config table.
-
-    Returns:
-      N/A
     """
     currentConfigValue = self.GetConfigValue(fieldName)
 
@@ -261,7 +260,8 @@ class RenamerDB:
     table entries to avoid duplicate entries if the given value already
     exists in the table.
 
-    Parameters:
+    Parameters
+    ----------
       tableName : string
         Name of table to add entry to.
 
@@ -270,9 +270,6 @@ class RenamerDB:
 
       newValue : string
         New value to add to table.
-
-    Returns:
-      N/A
     """
     match = None
     currentTable = self._GetFromSingleColumnTable(tableName)
@@ -294,13 +291,16 @@ class RenamerDB:
     """
     Get all entries from a table containing a single column.
 
-    Parameters:
+    Parameters
+    ----------
       tableName : string
         Name of table to add entry to.
 
-    Returns:
-      If either no table or no rows are found this returns None, otherwise a
-      list of all table entries is returned.
+    Returns
+    ----------
+      list or None
+        If either no table or no rows are found this returns None, otherwise a
+        list of all table entries is returned.
     """
   def _GetFromSingleColumnTable(self, tableName):
     table = self._ActionDatabase("SELECT * FROM {0}".format(tableName), error = False)
@@ -320,12 +320,10 @@ class RenamerDB:
     Add entry to SupportedFormat table. Input file format is forced
     to be lowercase before it is added.
 
-    Parameters:
+    Parameters
+    ----------
       fileFormat : string
         File format to add to table.
-
-    Returns:
-      N/A
     """
     newFileFormat = fileFormat.lower()
     self._AddToSingleColumnTable("SupportedFormat", "FileFormat", newFileFormat)
@@ -337,10 +335,8 @@ class RenamerDB:
     """
     Get all entries from SupportedFormat table.
 
-    Parameters:
-      N/A
-
-    Returns:
+    Returns
+    ----------
       formatList : list
         List of all entries from SupportedFormat table.
     """
@@ -361,12 +357,10 @@ class RenamerDB:
     """
     Add entry to IgnoredDir table.
 
-    Parameters:
+    Parameters
+    ----------
       ignoredDir : string
         Directory name to add to table.
-
-    Returns:
-      N/A
     """
     self._AddToSingleColumnTable("IgnoredDir", "DirName", ignoredDir)
 
@@ -377,7 +371,8 @@ class RenamerDB:
     """
     Get all entries from IgnoredDir table.
 
-    Returns:
+    Returns
+    ----------
       dirList : list
         List of all entries from IgnoredDir table.
     """
@@ -399,13 +394,15 @@ class RenamerDB:
     Add show to TVLibrary table. If the show already exists in the table
     a fatal error is raised.
 
-    Parameters:
+    Parameters
+    ----------
       showName : string
         Show name to add to TV library table.
 
-    Returns:
-      showID : int
-        Unique id generated for show when it is added to the table. Used
+    Returns
+    ----------
+      int
+        Unique show id generated for show when it is added to the table. Used
         across the database to reference this show.
     """
     goodlogging.Log.Info("DB", "Adding {0} to TV library".format(showName), verbosity=self.logVerbosity)
@@ -426,15 +423,13 @@ class RenamerDB:
     """
     Update show directory entry for given show id in TVLibrary table.
 
-    Parameters:
+    Parameters
+    ----------
       showID : int
         Show id value.
 
       showDir : string
         Show directory name.
-
-    Returns:
-      N/A
     """
     goodlogging.Log.Info("DB", "Updating TV library for ShowID={0}: ShowDir={1}".format(showID, showDir))
     self._ActionDatabase("UPDATE TVLibrary SET ShowDir=? WHERE ShowID=?", (showDir, showID))
@@ -453,7 +448,8 @@ class RenamerDB:
     given this will be used, otherwise show id will be used if it is given,
     otherwise show name will be used.
 
-    Parameters:
+    Parameters
+    ----------
       showName : string [optional : default = None]
         Show name.
 
@@ -463,10 +459,12 @@ class RenamerDB:
       showDir : string [optional : default = None]
         Show directory name.
 
-    Returns:
-      If no result is found this returns None otherwise it will return a the
-      result of the SQL query as a list. In the case that the result is expected
-      to be unique and multiple entries are return a fatal error will be raised.
+    Returns
+    ----------
+      list or None
+        If no result is found this returns None otherwise it will return a the
+        result of the SQL query as a list. In the case that the result is expected
+        to be unique and multiple entries are return a fatal error will be raised.
     """
     unique = True
     if showName is None and showID is None and showDir is None:
@@ -512,16 +510,16 @@ class RenamerDB:
 
     Find the show id for a given file name.
 
-    Parameters:
+    Parameters
+    ----------
       fileName : string
         File name to look up in table.
 
-    Returns:
-      If a match is found in the table:
-        showID : int
-          Show id for matching file name entry.
-
-      If no match is found this returns None.
+    Returns
+    ----------
+      int or None
+        If a match is found in the database table the show id for this
+        entry is returned, otherwise this returns None.
     """
     goodlogging.Log.Info("DB", "Looking up filename string '{0}' in database".format(fileName), verbosity=self.logVerbosity)
 
@@ -549,15 +547,13 @@ class RenamerDB:
     Add entry to FileName table. If the file name and show id combination
     already exists in the table a fatal error is raised.
 
-    Parameters:
+    Parameters
+    ----------
       fileName : string
         File name.
 
       showID : int
         Show id.
-
-    Returns:
-      N/A
     """
     goodlogging.Log.Info("DB", "Adding filename string match '{0}'={1} to database".format(fileName, showID), verbosity=self.logVerbosity)
 
@@ -577,17 +573,20 @@ class RenamerDB:
 
     Find the season directory for a given show id and season combination.
 
-    Parameters:
+    Parameters
+    ----------
       showID : int
         Show id for given show.
 
       seasonNum : int
         Season number.
 
-    Returns:
-      If no match is found this returns None, if a single match is found
-      then the season directory name value is returned. If multiple matches
-      are found a fatal error is raised.
+    Returns
+    ----------
+      string or None
+        If no match is found this returns None, if a single match is found
+        then the season directory name value is returned. If multiple matches
+        are found a fatal error is raised.
     """
     goodlogging.Log.Info("DB", "Looking up directory for ShowID={0} Season={1} in database".format(showID, seasonNum), verbosity=self.logVerbosity)
 
@@ -616,7 +615,8 @@ class RenamerDB:
     is found for the given show id and season number combination this raises
     a fatal error.
 
-    Parameters:
+    Parameters
+    ----------
       showID : int
         Show id.
 
@@ -625,9 +625,6 @@ class RenamerDB:
 
       seasonDir : string
         Season directory name.
-
-    Returns:
-      N/A
     """
     goodlogging.Log.Info("DB", "Adding season directory ({0}) to database for ShowID={1}, Season={2}".format(seasonDir, showID, seasonNum), verbosity=self.logVerbosity)
 
@@ -643,11 +640,6 @@ class RenamerDB:
 
   ############################################################################
   # _PrintDatabaseTable
-  # Gets database column headings using PRAGMA call
-  # Automatically adjusts each column width based on the
-  # longest element that needs to be printed
-  # Provide an optional list of column names and values to
-  # print a subset of the table
   ############################################################################
   def _PrintDatabaseTable(self, tableName, rowSelect = None):
     """
@@ -658,7 +650,8 @@ class RenamerDB:
     Gets database column headings using PRAGMA call. Automatically adjusts
     each column width based on the longest element that needs to be printed
 
-    Parameters:
+    Parameters
+    ----------
       tableName : int
         Name of table to print.
 
@@ -666,7 +659,8 @@ class RenamerDB:
         A list of column names and values against to search against.
 
     Returns:
-      The number of table rows printed.
+      int
+        The number of table rows printed.
     """
     goodlogging.Log.Info("DB", "{0}".format(tableName))
     goodlogging.Log.IncreaseIndent()
@@ -732,16 +726,19 @@ class RenamerDB:
 
     If the change succeeds the updated table is printed to stdout.
 
-    Parameters:
+    Parameters
+    ----------
       response : string
         User input.
 
       mode : string
         Valid values are 'ADD' or 'DEL'.
 
-    Returns:
-      Will always return None. There are numerous early returns in the cases
-      where the database update cannot proceed for any reason.
+    Returns
+    ----------
+      None
+        Will always return None. There are numerous early returns in the cases
+        where the database update cannot proceed for any reason.
     """
     # Get tableName from user input (form TABLENAME COL1=VAL1 COL2=VAL2 etc)
     try:
@@ -831,12 +828,13 @@ class RenamerDB:
     Allow user to manually update the database tables.
 
     User options from initial prompt are:
-      'ls' - print database contents
-      'a' - add an row to a database table
-      'd' - delete a single table row
-      'p' - delete an entire table (purge)
-      'f' - finish updates and continue
-      'x' - finish updates and exit
+
+      - 'ls' : print database contents
+      - 'a' : add an row to a database table
+      - 'd' : delete a single table row
+      - 'p' : delete an entire table (purge)
+      - 'f' : finish updates and continue
+      - 'x' : finish updates and exit
 
     Selecting add, delete or purge will proceed to a further prompt where the
     user can enter exactly what information should be added or deleted.

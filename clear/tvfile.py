@@ -1,10 +1,5 @@
-'''
+""" Class objects used to store TV file and show information """
 
-tvfile.py
-
-Class objects used to store TV file and show information
-
-'''
 # Python default package imports
 import os
 import re
@@ -23,25 +18,26 @@ class ShowInfo:
   """
   Show infomation object.
 
-  Attributes:
+  Attributes
+  ----------
     showID : int
-      Unique identifier for show
+      Unique identifier for show from database.
 
     showName : string
-      Show name
+      Show name.
 
     seasonNum : int
-      Season number
+      Season number.
 
     episodeNum : int
-      Episode number
+      Episode number.
 
     episodeName : int
-      Episode name
+      Episode name.
 
     multiPartEpisodeNumbers : list
       List containing any subsquent episode numbers
-      which are also part of this file (e.g. S01_02)
+      which are also part of this file (e.g. S01_02).
   """
 
   #################################################
@@ -51,12 +47,22 @@ class ShowInfo:
     """
     Constructor. Initialise object values.
 
-    Parameters:
+    Parameters
+    ----------
       showID : int [optional: default = None]
+        Show id from database.
+
       showName : string [optional: default = None]
+        Show name.
+
       seasonNum : int [optional: default = None]
+        Season number.
+
       episodeNum : int [optional: default = None]
+        Episode number.
+
       episodeName : int [optional: default = None]
+        Episode name.
      """
     self.showID = showID
     self.showName = showName
@@ -75,13 +81,16 @@ class ShowInfo:
     If any field is None return False otherwise sort
     by showName, then seasonNum then by episodeNum.
 
-    Parameters:
-      other : ShowInfo object
+    Parameters
+    ----------
+      other : tvfile.ShowInfo
         Object to compare against
 
-    Returns:
-      True if this object is less than other,
-      otherwise it returns False.
+    Returns
+    ----------
+      boolean
+        True if this object is less than other,
+        otherwise it returns False.
     """
     if self.showID is None or other.showID is None:
       return False
@@ -105,11 +114,12 @@ class TVFile:
   """
   TV file infomation object.
 
-  Attributes:
-    fileInfo : types.SimpleNamespace object
+  Attributes
+  ----------
+    fileInfo : types.SimpleNamespace
       Contains file infomation
 
-    showInfo : ShowInfo object
+    showInfo : tvfile.ShowInfo
       Contains show information
   """
 
@@ -120,7 +130,8 @@ class TVFile:
     """
     Constructor. Initialise object values.
 
-    Parameters:
+    Parameters
+    ----------
       filePath : string
         Original path to file
     """
@@ -140,13 +151,16 @@ class TVFile:
     Less than comparison of TVFile objects.
     Sort by showInfo value
 
-    Parameters:
-      other : TVFile object
+    Parameters
+    ----------
+      other : tvfile.TVFile
         Object to compare against
 
-    Returns:
-      True if this object is less than other,
-      otherwise it returns False.
+    Returns
+    ----------
+      boolean
+        True if this object is less than other,
+        otherwise it returns False.
     """
     return self.showInfo < other.showInfo
 
@@ -165,11 +179,10 @@ class TVFile:
     All information preceeding season number is used for the show name lookup. This
     string is forced to lowercase and stripped of special characters
 
-    Parameters:
-      N/A
-
-    Returns:
-      False if an incompatible file name is found, otherwise return True.
+    Returns
+    ----------
+      boolean
+        False if an incompatible file name is found, otherwise return True.
     """
 
     fileName = os.path.splitext(os.path.basename(self.fileInfo.origPath))[0]
@@ -249,11 +262,9 @@ class TVFile:
     Create new file name from show name, season number, episode number
     and episode name in format ShowName.S<NUM>.E<NUM>.EpisodeName.
 
-    Parameters:
-      N/A
-
-    Returns:
-      newFileName : string
+    Returns
+    ----------
+      string
         New file name in format ShowName.S<NUM>.E<NUM>.EpisodeName.
     """
     if self.showInfo.showName is not None and self.showInfo.seasonNum is not None and \
@@ -277,12 +288,10 @@ class TVFile:
     Create new file path. If a fileDir is provided it will be used otherwise
     the original file path is used. Updates file info object with new path.
 
-    Parameters:
+    Parameters
+    ----------
       fileDir : string [optional : default = None]
         Optional file directory
-
-    Returns:
-      N/A
     """
     newFileName = self.GenerateNewFileName()
     if newFileName is not None:

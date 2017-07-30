@@ -6,6 +6,9 @@
 
 # Virtualenv directory
 pyenv*
+venv*
+docenv*
+testenv*
 
 # Ignore cached directories
 __pycache__
@@ -28,3 +31,8 @@ dist/
 # Coverage files
 htmlcov
 .coverage
+
+# Docs files
+docs/_build/
+docs/_static/
+docs/_templates/

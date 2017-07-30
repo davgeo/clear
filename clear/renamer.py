@@ -1,10 +1,5 @@
-'''
+""" TV episode renamer """
 
-renamer.py
-
-TV episode renamer
-
-'''
 # Python default package imports
 import shutil
 import os
@@ -29,37 +24,35 @@ class TVRenamer:
   implements the main job flow for renaming all
   TV files from a given file list.
 
-  Attributes:
-    This class has no public attributes.
+  Attributes
+  ----------
+    _db : RenamerDB object
+      Object used for database access.
 
-    These attributes are used internally:
-      _db : RenamerDB object
-        Object used for database access.
+    _fileList : list
+      List of tvfile.TVFile objects to rename.
 
-      _fileList : list
-        List of tvfile.TVFile objects to rename.
+    _archiveDir : string
+      Directory to move archived file to.
 
-      _archiveDir : string
-        Directory to move archived file to.
+    _tvDir : string
+      Root directory for renamed TV files.
 
-      _tvDir : string
-        Root directory for renamed TV files.
+    _forceCopy : boolean
+      Enables copying of files if target directory
+      is on a different file system.
 
-      _forceCopy : boolean
-        Enables copying of files if target directory
-        is on a different file system.
+    _inPlaceRename : boolean
+      If set do renaming in the current directory.
+      Do not use the tvDir directory.
 
-      _inPlaceRename : boolean
-        If set do renaming in the current directory.
-        Do not use the tvDir directory.
+    _skipUserInput : boolean
+      If set skip any user inputs. If a single option
+      is available this will be selected otherwise no
+      further action will be taken.
 
-      _skipUserInput : boolean
-        If set skip any user inputs. If a single option
-        is available this will be selected otherwise no
-        further action will be taken.
-
-      _guide : EPGuidesLookup object
-        Object for doing lookups from web TV guide.
+    _guide : EPGuidesLookup object
+      Object for doing lookups from web TV guide.
   """
 
   #################################################
@@ -69,7 +62,8 @@ class TVRenamer:
     """
     Constructor. Initialise object values.
 
-    Parameters:
+    Parameters
+    ----------
       db : RenamerDB object
         Object used for database access.
 
@@ -115,11 +109,14 @@ class TVRenamer:
     """
     Select guide corresponding to guideName
 
-    Supported: EPGUIDES
-
-    Parameters:
+    Parameters
+    ----------
       guideName : string
         Name of guide to use.
+
+    Note
+    ----------
+    Supported guide names are: EPGUIDES
     """
     if(guideName == epguides.EPGuidesLookup.GUIDE_NAME):
       self._guide = epguides.EPGuidesLookup()
@@ -134,12 +131,15 @@ class TVRenamer:
     Return a list containing all unique show names from tvfile.TVFile object
     list.
 
-    Parameters:
+    Parameters
+    ----------
       tvFileList : list
         List of tvfile.TVFile objects.
 
-    Returns:
-      The set of show names from the tvfile.TVFile list.
+    Returns
+    ----------
+      set
+        The set of show names from the tvfile.TVFile list.
     """
     showNameList = [tvFile.fileInfo.showName for tvFile in tvFileList]
     return(set(showNameList))
@@ -156,17 +156,20 @@ class TVRenamer:
     or decline the best match from the TV guide or can provide an alternate
     match to lookup.
 
-    Parameters:
+    Parameters
+    ----------
       stringSearch : string
         String to look up in database or guide.
 
       origStringSearch : string [optional: default = None]
         Original search string, used by recusive function calls.
 
-    Returns:
-      If no show id could be found this returns None, otherwise
-      it returns a tvfile.ShowInfo object containing show name
-      and show id.
+    Returns
+    ----------
+      tvfile.ShowInfo or None
+        If no show id could be found this returns None, otherwise
+        it returns a tvfile.ShowInfo object containing show name
+        and show id.
     """
     showInfo = tvfile.ShowInfo()
 
@@ -264,13 +267,16 @@ class TVRenamer:
     """
     Calls GetShowID and does post processing checks on result.
 
-    Parameters:
+    Parameters
+    ----------
       stringSearch : string
         String to look up in database or guide.
 
-    Returns:
-      If GetShowID returns None or if it returns showInfo with showID = None
-      then this will return None, otherwise it will return the showInfo object.
+    Returns
+    ----------
+      tvfile.ShowInfo or None
+        If GetShowID returns None or if it returns showInfo with showID = None
+        then this will return None, otherwise it will return the showInfo object.
     """
     goodlogging.Log.Info("RENAMER", "Looking up show info for: {0}".format(stringSearch))
     goodlogging.Log.IncreaseIndent()
@@ -298,25 +304,25 @@ class TVRenamer:
     Move file from old file path to new file path. This follows certain
     conditions:
 
-      If file already exists at destination do rename inplace.
-
-      If file destination is on same file system and doesn't exist rename and
-      move.
-
-      If source and destination are on different file systems do rename in-place,
+      - If file already exists at destination do rename inplace.
+      - If file destination is on same file system and doesn't exist rename and move.
+      - If source and destination are on different file systems do rename in-place,
         and if forceCopy is true copy to dest and move orig to archive directory.
 
-    Parameters:
+    Parameters
+    ----------
       oldPath : string
         Old file path.
 
       newPath : string
         New file path.
 
-    Returns:
-      If old and new file paths are the same or if the new file path already exists
-      this returns False. If file rename is skipped for any reason this returns None
-      otherwise if rename completes okay it returns True.
+    Returns
+    ----------
+      boolean
+        If old and new file paths are the same or if the new file path already exists
+        this returns False. If file rename is skipped for any reason this returns None
+        otherwise if rename completes okay it returns True.
     """
     if oldPath == newPath:
       return False
@@ -382,15 +388,18 @@ class TVRenamer:
     user can choose to accept this, use the base show directory or enter
     a different name.
 
-    Parameters:
+    Parameters
+    ----------
       seasonNum : int
-        Season number
+        Season number.
 
-    Returns:
-      If the user accepts the generated directory name or gives a new name
-      this will be returned. If it the user chooses to use the base
-      directory an empty string is returned. If the user chooses to skip at
-      this input stage None is returned.
+    Returns
+    ----------
+      string or None
+        If the user accepts the generated directory name or gives a new name
+        this will be returned. If it the user chooses to use the base
+        directory an empty string is returned. If the user chooses to skip at
+        this input stage None is returned.
     """
     seasonDirName = "Season {0}".format(seasonNum)
     goodlogging.Log.Info("RENAMER", "Generated directory name: '{0}'".format(seasonDirName))
@@ -420,7 +429,8 @@ class TVRenamer:
     the user can choose to accept a match from the TV show directory, enter
     a new directory name to use or accept an autogenerated name.
 
-    Parameters:
+    Parameters
+    ----------
       showID : int
         Show ID number
 
@@ -430,8 +440,9 @@ class TVRenamer:
       seasonNum : int
         Season number
 
-    Returns:
-      seasonDirName : string
+    Returns
+    ----------
+      string
         Name of season directory to use. This can be a blank string to
         use the root show directory, an autogenerated string or a user
         given string.
@@ -523,13 +534,16 @@ class TVRenamer:
     skipUserInput variable is True the autogenerated value is accepted
     by default.
 
-    Parameters:
+    Parameters
+    ----------
       showName : string
         Name of TV show
 
-    Returns:
-      Either the autogenerated directory name, the user given directory name
-      or None if the user chooses to skip at this input stage.
+    Returns
+    ----------
+      string or None
+        Either the autogenerated directory name, the user given directory name
+        or None if the user chooses to skip at this input stage.
     """
     stripedDir = util.StripSpecialCharacters(showName)
     goodlogging.Log.Info("RENAMER", "Suggested show directory name is: '{0}'".format(stripedDir))
@@ -562,15 +576,17 @@ class TVRenamer:
     library directories. This is then used by the tvFile GenerateNewFilePath
     method to create a new path for the file.
 
-    Parameters:
-      tvFile : tvfile.TVFile object
+    Parameters
+    ----------
+      tvFile : tvfile.TVFile
         Contains show and file info.
 
       libraryDir : string
         Root path of TV library directory.
 
-    Returns:
-      tvFile : tvFile.TVFile object
+    Returns
+    ----------
+      tvfile.TVFile
         This is an updated version of the input object.
     """
     goodlogging.Log.Info("RENAMER", "Looking up library directory in database for show: {0}".format(tvFile.showInfo.showName))
@@ -654,12 +670,6 @@ class TVRenamer:
       4) Print file details and generate new file paths.
       5) Rename files.
       6) List skipped and incompatible files.
-
-    Parameters:
-      N/A
-
-    Returns:
-      N/A
     """
     # ------------------------------------------------------------------------
     # Get list of unique fileInfo show names and find matching actual show

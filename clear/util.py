@@ -1,10 +1,5 @@
-'''
+""" Utility functions """
 
-util.py
-
-Utility functions
-
-'''
 # Python default package imports
 import difflib
 import os
@@ -23,7 +18,8 @@ def RemoveEmptyDirectoryTree(path, silent = False, recursion = 0):
   """
   Delete tree of empty directories.
 
-  Parameters:
+  Parameters
+  ----------
     path : string
       Path to root of directory tree.
 
@@ -32,9 +28,6 @@ def RemoveEmptyDirectoryTree(path, silent = False, recursion = 0):
 
     recursion : int [optional: default = 0]
       Indicates level of recursion.
-
-  Returns:
-    N/A
   """
   if not silent and recursion is 0:
     goodlogging.Log.Info("UTIL", "Starting removal of empty directory tree at: {0}".format(path))
@@ -57,12 +50,14 @@ def CheckPathExists(path):
   Check if path exists, if it does add number to path (incrementing until
   a unique path is found).
 
-  Parameters:
+  Parameters
+  ----------
     path : string
       Path of directory to try.
 
-  Returns:
-    path : string
+  Returns
+  ----------
+    string
       Path of unique directory.
   """
   i = 0
@@ -82,15 +77,17 @@ def StripSpecialCharacters(string, stripAll = False):
   Strip on single spaces, periods, hyphens and underscores is conditional on
   if stripAll is set
 
-  Parameters:
+  Parameters
+  ----------
     string : string
       String to strip special characters from.
 
     stripAll : boolean [optional: default = False]
       If set will also strip single spaces, periods, hyphens and underscores.
 
-  Returns:
-    string : string
+  Returns
+  ----------
+    string
       Resulting string with special characters removed.
   """
   goodlogging.Log.Info("UTIL", "Stripping any special characters from {0}".format(string), verbosity=goodlogging.Verbosity.MINIMAL)
@@ -115,12 +112,14 @@ def CheckEmptyResponse(response):
   a non-empty response. Do not proceed until a non-empty
   response is given.
 
-  Parameters:
+  Parameters
+  ----------
     response : string
       Response string to check.
 
-  Returns:
-    response : string
+  Returns
+  ----------
+    string
       A non-empty response from user input.
   """
   while response.strip() == '':
@@ -137,15 +136,17 @@ def ValidUserResponse(response, validList):
   one of the valid options. Do not proceed until a valid entry
   is given.
 
-  Parameters:
+  Parameters
+  ----------
     response : string
       Response string to check.
 
     validList : list
       A list of valid responses.
 
-  Returns:
-    response : string
+  Returns
+  ----------
+    string
       A valid response string.
   """
   if response in validList:
@@ -170,7 +171,8 @@ def UserAcceptance(
   string to look up. If the match list is empty user must enter a new string
   or exit.
 
-  Parameters:
+  Parameters
+  ----------
     matchList : list
       A list of entries which the user can select a valid match from.
 
@@ -189,8 +191,9 @@ def UserAcceptance(
       Override the string for 'x' response. This can be used if
       the behaviour of the 'x' response is changed.
 
-  Returns:
-    response : string
+  Returns
+  ----------
+    string or None
       Either a entry from matchList, another valid response or a new
       string to look up. If match list is empty and recursive lookup is
       disabled or if the user response is 'x' this will return None.
@@ -250,15 +253,17 @@ def GetBestMatch(target, matchList):
   the same highest match score. If any exact match is found (1.0 score and
   equal size string) this will be given alone.
 
-  Parameters:
+  Parameters
+  ----------
     target : string
       Target string to match.
 
     matchList : list
       List of strings to match target against.
 
-  Returns:
-    bestMatchList : list
+  Returns
+  ----------
+    list
       A list of potention matches which share the same highest match score.
       If any exact match is found (1.0 score and equal size string) this
       will be given alone.
@@ -289,15 +294,17 @@ def GetBestStringMatchValue(string1, string2):
   """
   Return the value of the highest matching substrings between two strings.
 
-  Parameters:
+  Parameters
+  ----------
     string1 : string
       First string.
 
-    string2 : list
+    string2 : string
       Second string.
 
-  Returns:
-    bestRatio : int
+  Returns
+  ----------
+    int
       Integer value representing the best match found
       between string1 and string2.
   """
@@ -341,7 +348,8 @@ def WebLookup(url, urlQuery=None, utf8=True):
   """
   Look up webpage at given url with optional query string
 
-  Parameters:
+  Parameters
+  ----------
     url : string
       Web url.
 
@@ -351,8 +359,9 @@ def WebLookup(url, urlQuery=None, utf8=True):
     utf8 : boolean [optional: default = True]
       Set response encoding
 
-  Returns:
-    respnse : string
+  Returns
+  ----------
+    string
       GET response text
   """
 
@@ -375,15 +384,13 @@ def ArchiveProcessedFile(filePath, archiveDir):
   Move file from given file path to archive directory. Note the archive
   directory is relative to the file path directory.
 
-  Parameters:
+  Parameters
+  ----------
     filePath : string
       File path
 
     archiveDir : string
       Name of archive directory
-
-  Returns:
-    N/A
   """
   targetDir = os.path.join(os.path.dirname(filePath), archiveDir)
   goodlogging.Log.Info("UTIL", "Moving file to archive directory:")
@@ -405,15 +412,13 @@ def FileExtensionMatch(filePath, supportedFileTypeList):
   """
   Check whether the file extension matches any of the supported file types.
 
-  Parameters:
+  Parameters
+  ----------
     filePath : string
       File path
 
     supportedFileTypeList : list
       List of supported file extensions
-
-  Returns:
-    N/A
   """
   return (os.path.splitext(filePath)[1] in supportedFileTypeList)
 

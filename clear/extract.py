@@ -1,10 +1,5 @@
-'''
+""" RAR extraction methods """
 
-extract.py
-
-RAR extraction methods
-
-'''
 # Python default package imports
 import sys
 import os
@@ -29,7 +24,8 @@ def GetCompressedFilesInDir(fileDir, fileList, ignoreDirList, supportedFormatLis
   """
   Get all supported files from given directory folder. Appends to given file list.
 
-  Parameters:
+  Parameters
+  ----------
     fileDir : string
       File directory to search.
 
@@ -41,9 +37,6 @@ def GetCompressedFilesInDir(fileDir, fileList, ignoreDirList, supportedFormatLis
 
     supportedFormatList : list [optional : default = ['.rar',]]
       List of supported file formats to search for.
-
-  Returns:
-    N/A
   """
   goodlogging.Log.Info("EXTRACT", "Parsing file directory: {0}".format(fileDir))
   if os.path.isdir(fileDir) is True:
@@ -62,7 +55,8 @@ def MultipartArchiving(firstPartExtractList, otherPartSkippedList, archiveDir, o
   If file has not been extracted then if part >1 add to other part skipped list and only archive
   when the first part is sent for archiving.
 
-  Parameters:
+  Parameters
+  ----------
     firstPartExtractList : list
       File directory to search.
 
@@ -74,9 +68,6 @@ def MultipartArchiving(firstPartExtractList, otherPartSkippedList, archiveDir, o
 
     otherPartFilePath : list [optional : default = None]
       List of supported file formats to search for.
-
-  Returns:
-    N/A
   """
   if otherPartFilePath is None:
     for filePath in list(otherPartSkippedList):
@@ -98,7 +89,8 @@ def DoRarExtraction(rarArchive, targetFile, dstDir):
   """
   RAR extraction with exception catching
 
-  Parameters:
+  Parameters
+  ----------
     rarArchive : RarFile object
       RarFile object to extract.
 
@@ -108,8 +100,10 @@ def DoRarExtraction(rarArchive, targetFile, dstDir):
     dstDir : string
       Target directory.
 
-  Returns:
-    False if rar extraction failed, otherwise True.
+  Returns
+  ----------
+    boolean
+      False if rar extraction failed, otherwise True.
   """
   try:
     rarArchive.extract(targetFile, dstDir)
@@ -126,13 +120,16 @@ def GetRarPassword(skipUserInput):
   """
   Get password for rar archive from user input.
 
-  Parameters:
+  Parameters
+  ----------
     skipUserInput : boolean
       Set to skip user input.
 
-  Returns:
-    If no password is given then returns False otherwise returns user
-    response string.
+  Returns
+  ----------
+    string or boolean
+      If no password is given then returns False otherwise returns user
+      response string.
   """
   goodlogging.Log.Info("EXTRACT", "RAR file needs password to extract")
   if skipUserInput is False:
@@ -157,12 +154,15 @@ def CheckPasswordReuse(skipUserInput):
   """
   Check with user for password reuse.
 
-  Parameters:
+  Parameters
+  ----------
     skipUserInput : boolean
       Set to skip user input.
 
-  Returns:
-    Integer from -1 to 2 depending on user response.
+  Returns
+  ----------
+    int
+      Integer from -1 to 2 depending on user response.
   """
   goodlogging.Log.Info("EXTRACT", "RAR files needs password to extract")
   if skipUserInput is False:
@@ -193,7 +193,8 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
   format list from each RAR file. After sucessful extraction move RAR files to
   archive directory.
 
-  Parameters:
+  Parameters
+  ----------
     fileList : list
       List of files to attempt to extract.
 
@@ -206,9 +207,6 @@ def Extract(fileList, fileFormatList, archiveDir, skipUserInput):
     skipUserInput : boolean
       Set to skip any potential user input (if a single option is available
       it will be selected otherwise the user input will default to take no action).
-
-  Returns:
-    N/A
   """
   goodlogging.Log.Info("EXTRACT", "Extracting files from compressed archives")
   goodlogging.Log.IncreaseIndent()

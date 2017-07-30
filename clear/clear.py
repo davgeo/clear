@@ -1,10 +1,7 @@
-'''
+""" Command-Line Extract and Rename tool
 
-CLEAR: Command-Line Extract and Rename tool
+This is the entry point for this program. """
 
-This provides RAR extraction and renaming of media files.
-
-'''
 # Python default package imports
 import os
 import sys
@@ -34,10 +31,11 @@ class ClearManager:
   extraction) and finally calling the run method
   of the TVRenamer class.
 
-  Attributes:
-    This class has no public attributes.
+  This class has no public attributes but a number
+  of private attributes are used internally.
 
-    These attributes are used internally:
+  Attributes
+  ----------
     _db : RenamerDB class
       Reference to database object.
 
@@ -48,7 +46,7 @@ class ClearManager:
       Root directory for renamed TV files.
 
     _archiveDir : string
-      Name of directory to move any archivable/deletable
+      Name of directory to move any deletable
       files (e.g. compressed files after extraction)
 
     _supportedFormatsList : list
@@ -57,7 +55,7 @@ class ClearManager:
       Looked up from database.
 
     _ignoredDirsList : list
-      List of directories to ignore in recusive search
+      List of directories to ignore in recursive search
       of files from source directory. Looked up from
       database.
 
@@ -72,7 +70,7 @@ class ClearManager:
 
     _crossSystemCopyEnabled : boolean
       Default to False. Set by plusarg. Enables copying
-      of files if source and target direcories exist on
+      of files if source and target directories exist on
       different file systems.
 
     _dbUpdate : boolean
@@ -126,7 +124,8 @@ class ClearManager:
     Allow user to set or update config values in the database table.
     This is always called if no valid entry exists in the table already.
 
-    Parameters:
+    Parameters
+    ----------
       configKey : string
         Name of config field.
 
@@ -141,8 +140,9 @@ class ClearManager:
         The value of an existing entry
         for the given config field.
 
-    Returns:
-      newConfigValue : string
+    Returns
+    ----------
+      string
         New value for given config field in database.
     """
     newConfigValue = None
@@ -179,7 +179,8 @@ class ClearManager:
     Get configuration value from database table. If no value found user
     will be prompted to enter one.
 
-    Parameters:
+    Parameters
+    ----------
       configKey : string
         Name of config field.
 
@@ -190,8 +191,9 @@ class ClearManager:
         Set to True if config value is
         expected to be a directory path.
 
-    Returns:
-      configValue : string
+    Returns
+    ----------
+      string
         Value for given config field in database.
     """
     goodlogging.Log.Info("CLEAR", "Loading {0} from database:".format(strDescriptor))
@@ -226,12 +228,14 @@ class ClearManager:
     and all entries will be added to the table. They can reset the
     list at any time before finishing.
 
-    Parameters:
+    Parameters
+    ----------
       origFormatList : list [optional : default = []]
         List of original formats from database table.
 
-    Returns:
-      formatList : string
+    Returns
+    ----------
+      string
         List of updated formats from database table.
     """
     formatList = list(origFormatList)
@@ -274,11 +278,9 @@ class ClearManager:
     Get supported format values from database table. If no values found user
     will be prompted to enter values for this table.
 
-    Parameters:
-      N/A
-
-    Returns:
-      formatList : string
+    Returns
+    ----------
+      string
         List of supported formats from database table.
     """
     goodlogging.Log.Info("CLEAR", "Loading supported formats from database:")
@@ -308,12 +310,14 @@ class ClearManager:
     and all entries will be added to the table. They can reset the
     list at any time before finishing.
 
-    Parameters:
+    Parameters
+    ----------
       origIgnoredDirs : list [optional : default = []]
         List of original ignored directories from database table.
 
-    Returns:
-      ignoredDirs : string
+    Returns
+    ----------
+      string
         List of updated ignored directories from database table.
     """
     ignoredDirs = list(origIgnoredDirs)
@@ -354,11 +358,9 @@ class ClearManager:
     Get ignored directories values from database table. If no values found user
     will be prompted to enter values for this table.
 
-    Parameters:
-      N/A
-
-    Returns:
-      ignoredDirs : string
+    Returns
+    ----------
+      string
         List of ignored directories from database table.
     """
     goodlogging.Log.Info("CLEAR", "Loading ignored directories from database:")
@@ -511,7 +513,8 @@ class ClearManager:
 
     The result will be appended to the given file list argument.
 
-    Parameters:
+    Parameters
+    ----------
       fileDir : string
         Path to root of directory tree to search.
 
@@ -523,9 +526,6 @@ class ClearManager:
 
       ignoreDirList : list
         List of directories to ignore.
-
-    Returns:
-      Any supported files which are found will be appended to fileList.
     """
     goodlogging.Log.Info("CLEAR", "Parsing file directory: {0}".format(fileDir))
     if os.path.isdir(fileDir) is True:
@@ -552,11 +552,12 @@ class ClearManager:
     Main entry point for ClearManager class.
 
     Does the following steps:
-    - Parse script argumnents.
-    - Opionally print or update database tables.
+
+    - Parse script arguments.
+    - Optionally print or update database tables.
     - Get all configuration settings from database.
     - Optionally parse directory for file extraction.
-    - Recersively parse source directory for files matching
+    - Recursively parse source directory for files matching
       supported format list.
     - Call renamer.TVRenamer with file list.
     """
@@ -609,7 +610,7 @@ class ClearManager:
 # main
 ############################################################################
 def main():
-  ''' Main entry point for clear program '''
+  """ Main entry point for clear program """
   prog = ClearManager()
   prog.Run()
 

@@ -1,10 +1,5 @@
-'''
+""" Lookup TV guide information from epguides """
 
-epguides.py
-
-Lookup TV guide information from epguides
-
-'''
 # Python default package imports
 import os
 import glob
@@ -25,7 +20,8 @@ class EPGuidesLookup:
   TV guide lookup class using epguides. Used to
   lookup show and episode names for TV shows.
 
-  Attributes:
+  Attributes
+  ----------
     GUIDE_NAME : string
       Tag used to name this guide.
 
@@ -47,23 +43,22 @@ class EPGuidesLookup:
     logVerbosity : goodlogging.Verbosity type
       Define the logging verbosity for the class.
 
-    These attributes are used internally:
-      _allShowList : csv
-        Contents of allshows lookup.
+    _allShowList : csv
+      Contents of allshows lookup.
 
-      _showInfoDict : dict
-        Dictionary matching show ID to csv
-        contents of lookup for specific show.
+    _showInfoDict : dict
+      Dictionary matching show ID to csv
+      contents of lookup for specific show.
 
-      _showTitleList : list
-        List of show titles from allshows content.
+    _showTitleList : list
+      List of show titles from allshows content.
 
-      _showIDList : list
-        List of show ids from allshows content.
+    _showIDList : list
+      List of show ids from allshows content.
 
-      _saveDir : string
-        Directory where allshows csv file can be
-        saved.
+    _saveDir : string
+      Directory where allshows csv file can be
+      saved.
   """
   GUIDE_NAME = 'EPGUIDES'
   ALLSHOW_IDLIST_URL = 'http://epguides.com/common/allshows.txt'
@@ -92,13 +87,11 @@ class EPGuidesLookup:
     """
     Read self._allShowList as csv file and make list of titles and IDs.
 
-    Parameters:
+    Parameters
+    ----------
       checkOnly : boolean [optional : default = False]
           If checkOnly is True this will only check to ensure the column
           headers can be extracted correctly.
-
-    Returns:
-      N/A
     """
     showTitleList = []
     showIDList = []
@@ -136,12 +129,6 @@ class EPGuidesLookup:
     the epguides url. This will be saved to local file _epguides_YYYYMMDD.csv
     and any old files will be removed. Subsequent accesses for the same day
     will read this file.
-
-    Parameters:
-      N/A
-
-    Returns:
-      N/A
     """
     today = datetime.date.today().strftime("%Y%m%d")
     saveFile = '_epguides_' + today + '.csv'
@@ -205,12 +192,15 @@ class EPGuidesLookup:
     self._showTitleList and, if found, returns the corresponding index
     in self._showIDList.
 
-    Parameters:
+    Parameters
+    ----------
       showName : string
         Show name to get show ID for.
 
-    Returns:
-      If a show id is found this will be returned, otherwise None is returned.
+    Returns
+    ----------
+      int or None
+        If a show id is found this will be returned, otherwise None is returned.
     """
     self._GetTitleList()
     self._GetIDList()
@@ -230,12 +220,15 @@ class EPGuidesLookup:
     """
     Extracts csv show data from epguides html source.
 
-    Parameters:
+    Parameters
+    ----------
       html : string
         Block of html text
 
-    Returns:
-      Show data extracted from html text in csv format.
+    Returns
+    ----------
+       string
+        Show data extracted from html text in csv format.
     """
     htmlLines = html.splitlines()
     for count, line in enumerate(htmlLines):
@@ -258,7 +251,8 @@ class EPGuidesLookup:
     """
     Get episode name from epguides show info.
 
-    Parameters:
+    Parameters
+    ----------
       showID : string
         Identifier matching show in epguides.
 
@@ -268,9 +262,11 @@ class EPGuidesLookup:
       epiosde : int
         Epiosde number.
 
-    Returns:
-      If an episode name is found this is returned, otherwise the return
-      value is None.
+    Returns
+    ----------
+      int or None
+        If an episode name is found this is returned, otherwise the return
+        value is None.
     """
     # Load data for showID from dictionary
     showInfo = csv.reader(self._showInfoDict[showID].splitlines())
@@ -308,13 +304,15 @@ class EPGuidesLookup:
     epguides show titles. If this list has not previous been generated it
     will be generated first.
 
-    Parameters:
+    Parameters
+    ----------
       string : string
         String to find show name match against.
 
-    Returns:
-      showName : string
-        Best matching show name.
+    Returns
+    ----------
+      string
+        Show name which best matches input string.
     """
     goodlogging.Log.Info("EPGUIDES", "Looking up show name match for string '{0}' in guide".format(string), verbosity=self.logVerbosity)
     self._GetTitleList()
@@ -329,7 +327,8 @@ class EPGuidesLookup:
     Get the episode name correspondng to the given show name, season number
     and episode number.
 
-    Parameters:
+    Parameters
+    ----------
       showName : string
         Name of TV show. This must match an entry in the epguides
         title list (this can be achieved by calling ShowNameLookUp first).
@@ -340,9 +339,11 @@ class EPGuidesLookup:
       epiosde : int
         Epiosde number.
 
-    Returns:
-      If an episode name can be found it is returned, otherwise the return
-      value is None.
+    Returns
+    ----------
+      string or None
+        If an episode name can be found it is returned, otherwise the return
+        value is None.
     """
     goodlogging.Log.Info("EPGUIDE", "Looking up episode name for {0} S{1}E{2}".format(showName, season, episode), verbosity=self.logVerbosity)
     goodlogging.Log.IncreaseIndent()
