@@ -600,7 +600,7 @@ class ClearManager:
                                   tvFileList,
                                   self._archiveDir,
                                   guideName = 'EPGUIDES',
-                                  destDir = self._tvDir,
+                                  tvDir = self._tvDir,
                                   inPlaceRename = self._inPlaceRename,
                                   forceCopy = self._crossSystemCopyEnabled,
                                   skipUserInput = self._skipUserInputRename)
